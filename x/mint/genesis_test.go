@@ -13,7 +13,7 @@ import (
 )
 
 func TestMintInitGenesis(t *testing.T) {
-	app := simapp.Setup(false)
+	app := simapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
 	validateGenesis := types.ValidateGenesis(*types.DefaultGenesisState())

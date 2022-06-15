@@ -26,7 +26,7 @@ import (
 	tmcfg "github.com/tendermint/tendermint/config"
 	tmconfig "github.com/tendermint/tendermint/config"
 	tmos "github.com/tendermint/tendermint/libs/os"
-	"github.com/tendermint/tendermint/p2p"
+	// "github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -38,10 +38,10 @@ type internalNode struct {
 	chain        *internalChain
 	moniker      string
 	mnemonic     string
-	keyInfo      keyring.Info
+	keyInfo      *keyring.Record
 	privateKey   cryptotypes.PrivKey
 	consensusKey privval.FilePVKey
-	nodeKey      p2p.NodeKey
+	nodeKey      tmtypes.NodeKey
 	peerId       string
 	isValidator  bool
 }
@@ -90,8 +90,12 @@ func (n *internalNode) buildCreateValidatorMsg(amount sdk.Coin) (sdk.Msg, error)
 		return nil, err
 	}
 
+	addr, err := n.keyInfo.GetAddress()
+	if err != nil {
+		return nil, err
+	}
 	return stakingtypes.NewMsgCreateValidator(
-		sdk.ValAddress(n.keyInfo.GetAddress()),
+		sdk.ValAddress(addr),
 		valPubKey,
 		amount,
 		description,
@@ -128,12 +132,12 @@ func (n *internalNode) createNodeKey() error {
 	config.SetRoot(n.configDir())
 	config.Moniker = n.moniker
 
-	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
+	nodeKey, err := tmtypes.LoadOrGenNodeKey(config.NodeKeyFile())
 	if err != nil {
 		return err
 	}
 
-	n.nodeKey = *nodeKey
+	n.nodeKey = nodeKey
 	return nil
 }
 
@@ -144,24 +148,27 @@ func (n *internalNode) createConsensusKey() error {
 	config.SetRoot(n.configDir())
 	config.Moniker = n.moniker
 
-	pvKeyFile := config.PrivValidatorKeyFile()
+	pvKeyFile := config.PrivValidator.KeyFile()
 	if err := tmos.EnsureDir(filepath.Dir(pvKeyFile), 0o777); err != nil {
 		return err
 	}
 
-	pvStateFile := config.PrivValidatorStateFile()
+	pvStateFile := config.PrivValidator.StateFile()
 	if err := tmos.EnsureDir(filepath.Dir(pvStateFile), 0o777); err != nil {
 		return err
 	}
 
-	filePV := privval.LoadOrGenFilePV(pvKeyFile, pvStateFile)
+	filePV, err := privval.LoadOrGenFilePV(pvKeyFile, pvStateFile)
+	if err != nil {
+		return err
+	}
 	n.consensusKey = filePV.Key
 
 	return nil
 }
 
 func (n *internalNode) createKeyFromMnemonic(name, mnemonic string) error {
-	kb, err := keyring.New(keyringAppName, keyring.BackendTest, n.configDir(), nil)
+	kb, err := keyring.New(keyringAppName, keyring.BackendTest, n.configDir(), nil, util.Cdc)
 	if err != nil {
 		return err
 	}
@@ -203,19 +210,27 @@ func (n *internalNode) createKey(name string) error {
 	return n.createKeyFromMnemonic(name, mnemonic)
 }
 
-func (n *internalNode) export() *Node {
+func (n *internalNode) export() (*Node, error) {
+	addr, err := n.keyInfo.GetAddress()
+	if err != nil {
+		return nil, err
+	}
+	pk, err := n.keyInfo.GetPubKey()
+	if err != nil {
+		return nil, err
+	}
 	return &Node{
 		Name:          n.moniker,
 		ConfigDir:     n.configDir(),
 		Mnemonic:      n.mnemonic,
-		PublicAddress: n.keyInfo.GetAddress().String(),
-		PublicKey:     n.keyInfo.GetPubKey().Address().String(),
+		PublicAddress: addr.String(),
+		PublicKey:     pk.Address().String(),
 		PeerId:        n.peerId,
 		IsValidator:   n.isValidator,
-	}
+	}, nil
 }
 
-func (n *internalNode) getNodeKey() *p2p.NodeKey {
+func (n *internalNode) getNodeKey() *tmtypes.NodeKey {
 	return &n.nodeKey
 }
 
@@ -272,8 +287,7 @@ func (n *internalNode) init() error {
 		return fmt.Errorf("failed to export app genesis state: %w", err)
 	}
 
-	tmcfg.WriteConfigFile(filepath.Join(config.RootDir, "config", "config.toml"), config)
-	return nil
+	return tmcfg.WriteConfigFile(config.RootDir, config)
 }
 
 func (n *internalNode) createMnemonic() (string, error) {
@@ -349,7 +363,7 @@ func (n *internalNode) signMsg(msgs ...sdk.Msg) (*sdktx.Tx, error) {
 		return nil, err
 	}
 
-	txBuilder.SetMemo(fmt.Sprintf("%s@%s:26656", n.nodeKey.ID(), n.moniker))
+	txBuilder.SetMemo(fmt.Sprintf("%s@%s:26656", n.nodeKey.ID, n.moniker))
 	txBuilder.SetFeeAmount(sdk.NewCoins())
 	txBuilder.SetGasLimit(uint64(200000 * len(msgs)))
 
@@ -368,8 +382,12 @@ func (n *internalNode) signMsg(msgs ...sdk.Msg) (*sdktx.Tx, error) {
 	// Note: This line is not needed for SIGN_MODE_LEGACY_AMINO, but putting it
 	// also doesn't affect its generated sign bytes, so for code's simplicity
 	// sake, we put it here.
+	pk, err := n.keyInfo.GetPubKey()
+	if err != nil {
+		return nil, err
+	}
 	sig := txsigning.SignatureV2{
-		PubKey: n.keyInfo.GetPubKey(),
+		PubKey: pk,
 		Data: &txsigning.SingleSignatureData{
 			SignMode:  txsigning.SignMode_SIGN_MODE_DIRECT,
 			Signature: nil,
@@ -396,7 +414,7 @@ func (n *internalNode) signMsg(msgs ...sdk.Msg) (*sdktx.Tx, error) {
 	}
 
 	sig = txsigning.SignatureV2{
-		PubKey: n.keyInfo.GetPubKey(),
+		PubKey: pk,
 		Data: &txsigning.SingleSignatureData{
 			SignMode:  txsigning.SignMode_SIGN_MODE_DIRECT,
 			Signature: sigBytes,

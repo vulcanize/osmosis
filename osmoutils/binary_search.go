@@ -47,7 +47,7 @@ func (e ErrTolerance) Compare(expected sdk.Int, actual sdk.Int) int {
 	}
 	// Check multiplicative tolerance equations
 	if !e.MultiplicativeTolerance.IsNil() && !e.MultiplicativeTolerance.IsZero() {
-		errTerm := diff.ToDec().Quo(sdk.MinInt(expected, actual).ToDec())
+		errTerm := sdk.NewDecFromInt(diff).Quo(sdk.NewDecFromInt(sdk.MinInt(expected, actual)))
 		if errTerm.GT(e.MultiplicativeTolerance) {
 			return comparisonSign
 		}

@@ -6,8 +6,8 @@ import (
 
 	"github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 )
 
 func (suite *KeeperTestSuite) TestBeginUnlocking() { // test for all unlockable coins
@@ -363,7 +363,7 @@ func (suite *KeeperTestSuite) TestAddTokensToLock() {
 
 	// try to add tokens to unavailable lock
 	cacheCtx, _ := suite.Ctx.CacheContext()
-	err = simapp.FundAccount(suite.App.BankKeeper, cacheCtx, addr1, sdk.Coins{addCoins})
+	err = testutil.FundAccount(suite.App.BankKeeper, cacheCtx, addr1, sdk.Coins{addCoins})
 	suite.Require().NoError(err)
 	// curBalance := suite.App.BankKeeper.GetAllBalances(cacheCtx, addr1)
 	_, err = suite.App.LockupKeeper.AddTokensToLockByID(cacheCtx, 1111, addr1, addCoins)
@@ -540,8 +540,7 @@ func (suite *KeeperTestSuite) TestEndblockerWithdrawAllMaturedLockups() {
 		suite.Require().NoError(err)
 		suite.Require().Len(locks, len(times)-i-1)
 	}
-	suite.Require().Equal(suite.App.BankKeeper.GetAccountsBalances(suite.Ctx)[1].Address, addr1.String())
-	suite.Require().Equal(suite.App.BankKeeper.GetAccountsBalances(suite.Ctx)[1].Coins, totalCoins)
+	suite.Require().Equal(suite.App.BankKeeper.GetAllBalances(suite.Ctx, addr1), totalCoins)
 
 	suite.SetupTest()
 	setupInitLocks()

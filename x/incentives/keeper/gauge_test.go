@@ -29,7 +29,7 @@ func (suite *KeeperTestSuite) TestInvalidDurationGaugeCreationValidation() {
 func (suite *KeeperTestSuite) TestNonExistentDenomGaugeCreation() {
 	suite.SetupTest()
 
-	addrNoSupply := sdk.AccAddress([]byte("Gauge_Creation_Addr_"))
+	addrNoSupply := sdk.AccAddress([]byte("Gauge_Creation_Addr_")[:20])
 	addrs := suite.SetupManyLocks(1, defaultLiquidTokens, defaultLPTokens, defaultLockDuration)
 	distrTo := lockuptypes.QueryCondition{
 		LockQueryType: lockuptypes.ByDuration,

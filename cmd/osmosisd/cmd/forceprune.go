@@ -12,11 +12,13 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	tmstore "github.com/tendermint/tendermint/store"
-	tmdb "github.com/tendermint/tm-db"
 
 	"github.com/cosmos/cosmos-sdk/client"
+
 	"github.com/tendermint/tendermint/config"
+	tmdb "github.com/tendermint/tm-db"
+
+	tmstore "github.com/osmosis-labs/osmosis/v9/cmd/osmosisd/cmd/store"
 )
 
 const (

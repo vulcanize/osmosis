@@ -3,9 +3,9 @@ package keeper_test
 import (
 	clienttx "github.com/cosmos/cosmos-sdk/client/tx"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
-	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 
 	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 
@@ -216,7 +216,7 @@ func (suite *KeeperTestSuite) TestFeeDecorator() {
 			accSeqs[0],
 		)
 
-		simapp.FundAccount(suite.App.BankKeeper, suite.Ctx, addr0, tc.txFee)
+		testutil.FundAccount(suite.App.BankKeeper, suite.Ctx, addr0, tc.txFee)
 
 		tx := suite.BuildTx(txBuilder, msgs, sigV2, "", tc.txFee, gasLimit)
 

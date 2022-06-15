@@ -45,9 +45,11 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	genesisState[gammtypes.ModuleName] = gammGenJson
 	s.cfg.GenesisState = genesisState
 
-	s.network = network.New(s.T(), s.cfg)
+	var err error
+	s.network, err = network.New(s.T(), s.T().TempDir(), s.cfg)
+	s.Require().NoError(err)
 
-	_, err := s.network.WaitForHeight(1)
+	_, err = s.network.WaitForHeight(1)
 	s.Require().NoError(err)
 
 	val := s.network.Validators[0]
@@ -72,7 +74,9 @@ func (s *IntegrationTestSuite) TestNewCreatePoolCmd() {
 		keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,
@@ -353,7 +357,9 @@ func (s IntegrationTestSuite) TestNewJoinPoolCmd() {
 	info, _, err := val.ClientCtx.Keyring.NewMnemonic("NewJoinPoolAddr", keyring.English, sdk.FullFundraiserPath, "", hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,
@@ -491,7 +497,9 @@ func (s IntegrationTestSuite) TestNewSwapExactAmountOutCmd() {
 		keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,
@@ -555,7 +563,9 @@ func (s IntegrationTestSuite) TestNewJoinSwapExternAmountInCmd() {
 		keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,
@@ -663,7 +673,9 @@ func (s IntegrationTestSuite) TestNewJoinSwapShareAmountOutCmd() {
 		sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,
@@ -1077,7 +1089,9 @@ func (s IntegrationTestSuite) TestNewSwapExactAmountInCmd() {
 		keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,

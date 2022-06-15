@@ -97,7 +97,7 @@ func (pa Pool) getScaledPoolAmts(denoms ...string) ([]sdk.Dec, error) {
 			return []sdk.Dec{}, fmt.Errorf("denom %s does not exist in pool", denom)
 		}
 		scalingFactor := pa.GetScalingFactorByLiquidityIndex(liquidityIndex)
-		result[i] = amt.ToDec().QuoInt64Mut(int64(scalingFactor))
+		result[i] = sdk.NewDecFromInt(amt).QuoInt64Mut(int64(scalingFactor))
 	}
 	return result, nil
 }
@@ -128,7 +128,7 @@ func (pa Pool) getLiquidityIndexMap() map[string]int {
 func (p *Pool) updatePoolLiquidityForSwap(tokensIn sdk.Coins, tokensOut sdk.Coins) {
 	numTokens := p.PoolLiquidity.Len()
 	// update liquidity
-	p.PoolLiquidity = p.PoolLiquidity.Add(tokensIn...).Sub(tokensOut)
+	p.PoolLiquidity = p.PoolLiquidity.Add(tokensIn...).Sub(tokensOut...)
 	// sanity check that no new denoms were added
 	if len(p.PoolLiquidity) != numTokens {
 		panic("updatePoolLiquidityForSwap changed number of tokens in pool")

@@ -40,10 +40,10 @@ func (k Keeper) AllocateAsset(ctx sdk.Context) error {
 		return k.FundCommunityPoolFromModule(ctx, asset)
 	}
 
-	assetAmountDec := asset.Amount.ToDec()
-	totalWeightDec := distrInfo.TotalWeight.ToDec()
+	assetAmountDec := sdk.NewDecFromInt(asset.Amount)
+	totalWeightDec := sdk.NewDecFromInt(distrInfo.TotalWeight)
 	for _, record := range distrInfo.Records {
-		allocatingAmount := assetAmountDec.Mul(record.Weight.ToDec().Quo(totalWeightDec)).TruncateInt()
+		allocatingAmount := assetAmountDec.Mul(sdk.NewDecFromInt(record.Weight).Quo(totalWeightDec)).TruncateInt()
 
 		// when weight is too small and no amount is allocated, just skip this to avoid zero coin send issues
 		if !allocatingAmount.IsPositive() {

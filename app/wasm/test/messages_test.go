@@ -40,7 +40,7 @@ func TestCreateDenom(t *testing.T) {
 		},
 		"invalid sub-denom": {
 			createDenom: &wasmbindings.CreateDenom{
-				Subdenom: "sub-denom_2",
+				Subdenom: "sub-denom~2",
 			},
 			expErr: true,
 		},
@@ -432,8 +432,8 @@ func TestSwap(t *testing.T) {
 	starPool := preparePool(t, ctx, osmosis, actor, poolFunds)
 
 	// Estimate swap rate
-	uosmo := poolFunds[0].Amount.ToDec().MustFloat64()
-	ustar := poolFunds[1].Amount.ToDec().MustFloat64()
+	uosmo := sdk.NewDecFromInt(poolFunds[0].Amount).MustFloat64()
+	ustar := sdk.NewDecFromInt(poolFunds[1].Amount).MustFloat64()
 	swapRate := ustar / uosmo
 
 	amountIn := wasmbindings.ExactIn{
@@ -454,7 +454,7 @@ func TestSwap(t *testing.T) {
 	negativeAmountOut := amountOut
 	negativeAmountOut.Output = negativeAmountOut.Output.Neg()
 
-	amount := amountIn.Input.ToDec().MustFloat64()
+	amount := sdk.NewDecFromInt(amountIn.Input).MustFloat64()
 	starAmount := sdk.NewInt(int64(amount * swapRate))
 
 	starSwapAmount := wasmbindings.SwapAmount{Out: &starAmount}
@@ -645,7 +645,7 @@ func TestSwap(t *testing.T) {
 				return
 			}
 			require.NoError(t, gotErr)
-			assert.InEpsilonf(t, (*spec.expCost.Out).ToDec().MustFloat64(), (*gotAmount.Out).ToDec().MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotAmount.Out.String())
+			assert.InEpsilonf(t, sdk.NewDecFromInt(*spec.expCost.Out).MustFloat64(), sdk.NewDecFromInt(*gotAmount.Out).MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotAmount.Out.String())
 		})
 	}
 }
@@ -678,13 +678,13 @@ func TestSwapMultiHop(t *testing.T) {
 
 	// Multi-hop
 	// Estimate 1st swap rate
-	uosmo := poolFunds[0].Amount.ToDec().MustFloat64()
-	ustar := poolFunds[1].Amount.ToDec().MustFloat64()
-	expectedOut1 := uosmo - uosmo*ustar/(ustar+amountIn.Input.ToDec().MustFloat64())
+	uosmo := sdk.NewDecFromInt(poolFunds[0].Amount).MustFloat64()
+	ustar := sdk.NewDecFromInt(poolFunds[1].Amount).MustFloat64()
+	expectedOut1 := uosmo - uosmo*ustar/(ustar+sdk.NewDecFromInt(amountIn.Input).MustFloat64())
 
 	// Estimate 2nd swap rate
-	uatom2 := poolFunds2[0].Amount.ToDec().MustFloat64()
-	uosmo2 := poolFunds2[1].Amount.ToDec().MustFloat64()
+	uatom2 := sdk.NewDecFromInt(poolFunds2[0].Amount).MustFloat64()
+	uosmo2 := sdk.NewDecFromInt(poolFunds2[1].Amount).MustFloat64()
 	expectedOut2 := uatom2 - uosmo2*uatom2/(uosmo2+expectedOut1)
 
 	atomAmount := sdk.NewInt(int64(expectedOut2))
@@ -827,7 +827,7 @@ func TestSwapMultiHop(t *testing.T) {
 				return
 			}
 			require.NoError(t, gotErr)
-			assert.InEpsilonf(t, (*spec.expCost.Out).ToDec().MustFloat64(), (*gotAmount.Out).ToDec().MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotAmount.Out.String())
+			assert.InEpsilonf(t, sdk.NewDecFromInt(*spec.expCost.Out).MustFloat64(), sdk.NewDecFromInt(*gotAmount.Out).MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotAmount.Out.String())
 		})
 	}
 }

@@ -92,7 +92,7 @@ func (suite *KeeperTestSuite) TestBalancerPoolSimpleMultihopSwapExactAmountIn() 
 			}()
 
 			// Ratio of the token out should be between the before spot price and after spot price.
-			sp := test.param.tokenIn.Amount.ToDec().Quo(tokenOutAmount.ToDec())
+			sp := sdk.NewDecFromInt(test.param.tokenIn.Amount).Quo(sdk.NewDecFromInt(tokenOutAmount))
 			suite.True(sp.GT(spotPriceBefore) && sp.LT(spotPriceAfter), "test: %v", test.name)
 		} else {
 			_, err := keeper.MultihopSwapExactAmountIn(suite.Ctx, suite.TestAccs[0], test.param.routes, test.param.tokenIn, test.param.tokenOutMinAmount)
@@ -187,7 +187,7 @@ func (suite *KeeperTestSuite) TestBalancerPoolSimpleMultihopSwapExactAmountOut()
 
 			// Ratio of the token out should be between the before spot price and after spot price.
 			// This is because the swap increases the spot price
-			sp := tokenInAmount.ToDec().Quo(test.param.tokenOut.Amount.ToDec())
+			sp := sdk.NewDecFromInt(tokenInAmount).Quo(sdk.NewDecFromInt(test.param.tokenOut.Amount))
 			fmt.Printf("spBefore %s, spAfter %s, sp actual %s\n", spotPriceBefore, spotPriceAfter, sp)
 			suite.True(sp.GT(spotPriceBefore) && sp.LT(spotPriceAfter), "multi-hop spot price wrong, test: %v", test.name)
 		} else {

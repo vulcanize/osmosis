@@ -8,11 +8,8 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/cosmos/iavl"
-
-	dbm "github.com/tendermint/tm-db"
-
-	iavlstore "github.com/cosmos/cosmos-sdk/store/iavl"
+	"github.com/cosmos/cosmos-sdk/db/memdb"
+	"github.com/cosmos/cosmos-sdk/store/v2alpha1/dbadapter"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/osmosis-labs/osmosis/v9/store"
@@ -25,12 +22,8 @@ type TreeTestSuite struct {
 }
 
 func (suite *TreeTestSuite) SetupTest() {
-	db := dbm.NewMemDB()
-	tree, err := iavl.NewMutableTree(db, 100)
-	suite.Require().NoError(err)
-	_, _, err = tree.SaveVersion()
-	suite.Require().Nil(err)
-	kvstore := iavlstore.UnsafeNewStore(tree)
+	db := memdb.NewDB()
+	kvstore := dbadapter.Store{db.ReadWriter()}
 	suite.tree = store.NewTree(kvstore, 10)
 }
 

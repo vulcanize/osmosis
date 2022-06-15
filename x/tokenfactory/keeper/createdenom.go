@@ -12,7 +12,7 @@ import (
 // ConvertToBaseToken converts a fee amount in a whitelisted fee token to the base fee token amount
 func (k Keeper) CreateDenom(ctx sdk.Context, creatorAddr string, subdenom string) (newTokenDenom string, err error) {
 	// Temporary check until IBC bug is sorted out
-	if k.bankKeeper.HasSupply(ctx, subdenom) {
+	if len(subdenom) != 0 && k.bankKeeper.HasSupply(ctx, subdenom) {
 		return "", fmt.Errorf("Temporary error until IBC bug is sorted out, " +
 			"can't create subdenoms that are the same as a native denom.")
 	}

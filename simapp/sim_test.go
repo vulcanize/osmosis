@@ -9,14 +9,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/tendermint/libs/log"
-	dbm "github.com/tendermint/tm-db"
 
 	"github.com/osmosis-labs/osmosis/v9/app"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	"github.com/cosmos/cosmos-sdk/db/memdb"
 	sdkSimapp "github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/simapp/helpers"
-	"github.com/cosmos/cosmos-sdk/store"
 	simulation2 "github.com/cosmos/cosmos-sdk/types/simulation"
 	"github.com/cosmos/cosmos-sdk/x/simulation"
 )
@@ -67,17 +66,16 @@ func fullAppSimulation(tb testing.TB, is_testing bool) {
 
 	// fauxMerkleModeOpt returns a BaseApp option to use a dbStoreAdapter instead of
 	// an IAVLStore for faster simulation speed.
-	fauxMerkleModeOpt := func(bapp *baseapp.BaseApp) {
+	fauxMerkleModeOpt := baseapp.AppOptionFunc(func(bapp *baseapp.BaseApp) {
 		if is_testing {
 			bapp.SetFauxMerkleMode()
 		}
-	}
+	})
 
 	osmosis := app.NewOsmosisApp(
 		logger,
 		db,
 		nil,
-		true, // load latest
 		map[int64]bool{},
 		app.DefaultNodeHome,
 		sdkSimapp.FlagPeriodValue,
@@ -117,8 +115,9 @@ func fullAppSimulation(tb testing.TB, is_testing bool) {
 
 // interBlockCacheOpt returns a BaseApp option function that sets the persistent
 // inter-block write-through cache.
-func interBlockCacheOpt() func(*baseapp.BaseApp) {
-	return baseapp.SetInterBlockCache(store.NewCommitKVStoreCacheManager())
+// TODO: implement this cache as enhancement to v2 multistore
+func interBlockCacheOpt() baseapp.AppOptionFunc {
+	return func(*baseapp.BaseApp) {}
 }
 
 // // TODO: Make another test for the fuzzer itself, which just has noOp txs
@@ -154,12 +153,11 @@ func TestAppStateDeterminism(t *testing.T) {
 				logger = log.NewNopLogger()
 			}
 
-			db := dbm.NewMemDB()
+			db := memdb.NewDB()
 			app := app.NewOsmosisApp(
 				logger,
 				db,
 				nil,
-				true,
 				map[int64]bool{},
 				app.DefaultNodeHome,
 				sdkSimapp.FlagPeriodValue,

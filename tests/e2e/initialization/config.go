@@ -14,6 +14,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govv1b1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 	staketypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/gogo/protobuf/proto"
 	tmjson "github.com/tendermint/tendermint/libs/json"
@@ -170,12 +171,16 @@ func initGenesis(chain *internalChain, votingPeriod time.Duration, forkHeight in
 	// initialize a genesis file
 	configDir := chain.nodes[0].configDir()
 	for _, val := range chain.nodes {
+		addr, err := val.keyInfo.GetAddress()
+		if err != nil {
+			return err
+		}
 		if chain.chainMeta.Id == ChainAID {
-			if err := addAccount(configDir, "", InitBalanceStrA, val.keyInfo.GetAddress(), forkHeight); err != nil {
+			if err := addAccount(configDir, "", InitBalanceStrA, addr, forkHeight); err != nil {
 				return err
 			}
 		} else if chain.chainMeta.Id == ChainBID {
-			if err := addAccount(configDir, "", InitBalanceStrB, val.keyInfo.GetAddress(), forkHeight); err != nil {
+			if err := addAccount(configDir, "", InitBalanceStrB, addr, forkHeight); err != nil {
 				return err
 			}
 		}
@@ -249,7 +254,7 @@ func initGenesis(chain *internalChain, votingPeriod time.Duration, forkHeight in
 		return err
 	}
 
-	err = updateModuleGenesis(appGenState, govtypes.ModuleName, &govtypes.GenesisState{}, updateGovGenesis(votingPeriod))
+	err = updateModuleGenesis(appGenState, govtypes.ModuleName, &govv1b1.GenesisState{}, updateGovGenesis(votingPeriod))
 	if err != nil {
 		return err
 	}
@@ -358,9 +363,9 @@ func updateCrisisGenesis(crisisGenState *crisistypes.GenesisState) {
 	crisisGenState.ConstantFee.Denom = OsmoDenom
 }
 
-func updateGovGenesis(votingPeriod time.Duration) func(*govtypes.GenesisState) {
-	return func(govGenState *govtypes.GenesisState) {
-		govGenState.VotingParams = govtypes.VotingParams{
+func updateGovGenesis(votingPeriod time.Duration) func(*govv1b1.GenesisState) {
+	return func(govGenState *govv1b1.GenesisState) {
+		govGenState.VotingParams = govv1b1.VotingParams{
 			VotingPeriod: votingPeriod,
 		}
 		govGenState.DepositParams.MinDeposit = tenOsmo

@@ -288,7 +288,7 @@ func (s *IntegrationTestSuite) runValidators(chainConfig *chainConfig, dockerRep
 		s.T().Logf("started %s validator container: %s", resource.Container.Name[1:], resource.Container.ID)
 	}
 
-	rpcClient, err := rpchttp.New("tcp://localhost:26657", "/websocket")
+	rpcClient, err := rpchttp.New("tcp://localhost:26657")
 	s.Require().NoError(err)
 
 	s.Require().Eventually(

@@ -11,14 +11,17 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
+	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 
 	"github.com/osmosis-labs/osmosis/v9/app"
 )
 
 func TestNoStorageWithoutProposal(t *testing.T) {
 	// we use default config
-	osmosis, ctx := CreateTestInput()
+	osmosis, ctx := CreateTestInput(t)
 
 	wasmKeeper := osmosis.WasmKeeper
 	// this wraps wasmKeeper, providing interfaces exposed to external messages
@@ -35,6 +38,7 @@ func TestNoStorageWithoutProposal(t *testing.T) {
 
 func storeCodeViaProposal(t *testing.T, ctx sdk.Context, osmosis *app.OsmosisApp, addr sdk.AccAddress) {
 	govKeeper := osmosis.GovKeeper
+	msgSvr := govkeeper.NewMsgServerImpl(*govKeeper)
 	wasmCode, err := ioutil.ReadFile("../testdata/hackatom.wasm")
 	require.NoError(t, err)
 
@@ -43,18 +47,16 @@ func storeCodeViaProposal(t *testing.T, ctx sdk.Context, osmosis *app.OsmosisApp
 		p.WASMByteCode = wasmCode
 	})
 
-	// when stored
-	storedProposal, err := govKeeper.SubmitProposal(ctx, src)
+	govAcct := govKeeper.GetGovernanceAccount(ctx).GetAddress()
+	srcAny, err := codectypes.NewAnyWithValue(src)
 	require.NoError(t, err)
-
-	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx, storedProposal.GetContent())
+	msg := govv1.NewMsgExecLegacyContent(srcAny, govAcct.String())
+	_, err = msgSvr.ExecLegacyContent(ctx, msg)
 	require.NoError(t, err)
 }
 
 func TestStoreCodeProposal(t *testing.T) {
-	osmosis, ctx := CreateTestInput()
+	osmosis, ctx := CreateTestInput(t)
 	myActorAddress := RandomAccountAddress()
 	wasmKeeper := osmosis.WasmKeeper
 
@@ -79,7 +81,7 @@ type HackatomExampleInitMsg struct {
 }
 
 func TestInstantiateContract(t *testing.T) {
-	osmosis, ctx := CreateTestInput()
+	osmosis, ctx := CreateTestInput(t)
 	funder := RandomAccountAddress()
 	benefit, arb := RandomAccountAddress(), RandomAccountAddress()
 	FundAccount(t, ctx, osmosis, funder)

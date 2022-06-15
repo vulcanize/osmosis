@@ -12,11 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ory/dockertest/v3/docker"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govv1b1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/ory/dockertest/v3/docker"
 
 	superfluidtypes "github.com/osmosis-labs/osmosis/v9/x/superfluid/types"
 
@@ -125,7 +126,7 @@ func (s *IntegrationTestSuite) sendIBC(srcChain *chainConfig, dstChain *chainCon
 		func() bool {
 			balancesBPost, err := s.queryBalances(dstChain, 0, recipient)
 			s.Require().NoError(err)
-			ibcCoin := balancesBPost.Sub(balancesBPre)
+			ibcCoin := balancesBPost.Sub(balancesBPre...)
 			if ibcCoin.Len() == 1 {
 				tokenPre := balancesBPre.AmountOfNoDenomValidation(ibcCoin[0].Denom)
 				tokenPost := balancesBPost.AmountOfNoDenomValidation(ibcCoin[0].Denom)
@@ -247,7 +248,7 @@ func (s *IntegrationTestSuite) queryPropTally(endpoint, addr string) (sdk.Int, s
 	bz, err := s.ExecQueryRPC(path)
 	s.Require().NoError(err)
 
-	var balancesResp govtypes.QueryTallyResultResponse
+	var balancesResp govv1b1.QueryTallyResultResponse
 	if err := util.Cdc.UnmarshalJSON(bz, &balancesResp); err != nil {
 		return sdk.ZeroInt(), sdk.ZeroInt(), sdk.ZeroInt(), sdk.ZeroInt(), err
 	}

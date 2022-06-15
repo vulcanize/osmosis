@@ -25,7 +25,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 }
 
 func (suite *KeeperTestSuite) SetupTestWithLevelDb() {
-	suite.App, suite.cleanup = app.SetupTestingAppWithLevelDb(false)
+	suite.App, suite.cleanup = app.SetupTestingAppWithBadgerDb()
 	suite.Ctx = suite.App.BaseApp.NewContext(false, tmproto.Header{Height: 1, ChainID: "osmosis-1", Time: time.Now().UTC()})
 }
 

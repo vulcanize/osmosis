@@ -42,7 +42,7 @@ func (suite *KeeperTestSuite) setupAddr(addrNum int, prefix string, balance sdk.
 		_, _ = rand.Read(prefixBz)
 		prefix = string(prefixBz)
 	} else {
-		prefix = fmt.Sprintf("%8.8s", prefix)
+		prefix = prefix[:8]
 	}
 
 	addr := sdk.AccAddress([]byte(fmt.Sprintf("addr%s%8d", prefix, addrNum)))

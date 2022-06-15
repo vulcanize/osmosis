@@ -8,13 +8,14 @@ import (
 	"github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 // Keeper provides a way to manage module storage.
 type Keeper struct {
 	cdc      codec.Codec
-	storeKey sdk.StoreKey
+	storeKey storetypes.StoreKey
 
 	hooks types.LockupHooks
 
@@ -24,7 +25,7 @@ type Keeper struct {
 }
 
 // NewKeeper returns an instance of Keeper.
-func NewKeeper(cdc codec.Codec, storeKey sdk.StoreKey, ak types.AccountKeeper, bk types.BankKeeper, dk types.DistrKeeper) *Keeper {
+func NewKeeper(cdc codec.Codec, storeKey storetypes.StoreKey, ak types.AccountKeeper, bk types.BankKeeper, dk types.DistrKeeper) *Keeper {
 	return &Keeper{
 		cdc:      cdc,
 		storeKey: storeKey,

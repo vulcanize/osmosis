@@ -6,8 +6,8 @@ import (
 	"github.com/osmosis-labs/osmosis/v9/x/lockup/keeper"
 	"github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 )
 
 func (suite *KeeperTestSuite) TestMsgLockTokens() {
@@ -305,7 +305,7 @@ func (suite *KeeperTestSuite) TestMsgEditLockup() {
 	for _, test := range tests {
 		suite.SetupTest()
 
-		err := simapp.FundAccount(suite.App.BankKeeper, suite.Ctx, test.param.lockOwner, test.param.coinsToLock)
+		err := testutil.FundAccount(suite.App.BankKeeper, suite.Ctx, test.param.lockOwner, test.param.coinsToLock)
 		suite.Require().NoError(err)
 
 		msgServer := keeper.NewMsgServerImpl(suite.App.LockupKeeper)

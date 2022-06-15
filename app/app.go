@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,24 +9,25 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/CosmWasm/wasmd/x/wasm"
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
 	"github.com/spf13/cast"
+
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmjson "github.com/tendermint/tendermint/libs/json"
 	"github.com/tendermint/tendermint/libs/log"
 	tmos "github.com/tendermint/tendermint/libs/os"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
+
+	"github.com/CosmWasm/wasmd/x/wasm"
 
 	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
-	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
+	dbm "github.com/cosmos/cosmos-sdk/db"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
@@ -34,10 +36,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
-	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
+	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
 
 	"github.com/osmosis-labs/osmosis/v9/app/keepers"
@@ -143,9 +145,8 @@ func init() {
 // NewOsmosisApp returns a reference to an initialized Osmosis.
 func NewOsmosisApp(
 	logger log.Logger,
-	db dbm.DB,
+	db dbm.DBConnection,
 	traceStore io.Writer,
-	loadLatest bool,
 	skipUpgradeHeights map[int64]bool,
 	homePath string,
 	invCheckPeriod uint,
@@ -153,11 +154,32 @@ func NewOsmosisApp(
 	appOpts servertypes.AppOptions,
 	wasmEnabledProposals []wasm.ProposalType,
 	wasmOpts []wasm.Option,
-	baseAppOptions ...func(*baseapp.BaseApp),
+	baseAppOptions ...baseapp.AppOption,
 ) *OsmosisApp {
 	appCodec := encodingConfig.Marshaler
 	cdc := encodingConfig.Amino
 	interfaceRegistry := encodingConfig.InterfaceRegistry
+	wasmDir := filepath.Join(homePath, "wasm")
+
+	appKeepers := keepers.AppKeepers{}
+	appKeepers.InitSpecialKeepers(
+		appCodec,
+		wasmDir,
+		cdc,
+		invCheckPeriod,
+		skipUpgradeHeights,
+		homePath,
+	)
+
+	// initialize stores
+	baseAppOptions = append(baseAppOptions, baseapp.SetSubstoresFromMaps(
+		appKeepers.GetKVStoreKey(),
+		appKeepers.GetTransientStoreKey(),
+		appKeepers.GetMemoryStoreKey(),
+	))
+	if upgradeOpt := getUpgradeStoreOption(*appKeepers.UpgradeKeeper); upgradeOpt != nil {
+		baseAppOptions = append(baseAppOptions, upgradeOpt)
+	}
 
 	bApp := baseapp.NewBaseApp(appName, logger, db, encodingConfig.TxConfig.TxDecoder(), baseAppOptions...)
 	bApp.SetCommitMultiStoreTracer(traceStore)
@@ -165,7 +187,7 @@ func NewOsmosisApp(
 	bApp.SetInterfaceRegistry(interfaceRegistry)
 
 	app := &OsmosisApp{
-		AppKeepers:        keepers.AppKeepers{},
+		AppKeepers:        appKeepers,
 		BaseApp:           bApp,
 		cdc:               cdc,
 		appCodec:          appCodec,
@@ -173,21 +195,15 @@ func NewOsmosisApp(
 		invCheckPeriod:    invCheckPeriod,
 	}
 
-	wasmDir := filepath.Join(homePath, "wasm")
+	// set the BaseApp's parameter store
+	bApp.SetParamStore(appKeepers.ParamsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramstypes.ConsensusParamsKeyTable()))
+	app.UpgradeKeeper.SetVersionManager(app)
+
 	wasmConfig, err := wasm.ReadWasmConfig(appOpts)
 	if err != nil {
 		panic(fmt.Sprintf("error while reading wasm config: %s", err))
 	}
-	app.InitSpecialKeepers(
-		appCodec,
-		bApp,
-		wasmDir,
-		cdc,
-		invCheckPeriod,
-		skipUpgradeHeights,
-		homePath,
-	)
-	app.setupUpgradeStoreLoaders()
+
 	app.InitNormalKeepers(
 		appCodec,
 		bApp,
@@ -255,11 +271,6 @@ func NewOsmosisApp(
 	// add test gRPC service for testing gRPC queries in isolation
 	testdata.RegisterQueryServer(app.GRPCQueryRouter(), testdata.QueryImpl{})
 
-	// initialize stores
-	app.MountKVStores(app.GetKVStoreKey())
-	app.MountTransientStores(app.GetTransientStoreKey())
-	app.MountMemoryStores(app.GetMemoryStoreKey())
-
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
@@ -289,17 +300,11 @@ func NewOsmosisApp(
 		}
 	}
 
-	if loadLatest {
-		if err := app.LoadLatestVersion(); err != nil {
-			tmos.Exit(err.Error())
-		}
+	ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
 
-		ctx := app.BaseApp.NewUncachedContext(true, tmproto.Header{})
-
-		// Initialize pinned codes in wasmvm as they are not persisted there
-		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
-			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
-		}
+	// Initialize pinned codes in wasmvm as they are not persisted there
+	if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
+		tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 	}
 
 	return app
@@ -339,7 +344,7 @@ func (app *OsmosisApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) a
 
 // LoadHeight loads a particular height.
 func (app *OsmosisApp) LoadHeight(height int64) error {
-	return app.LoadVersion(height)
+	return errors.New("cannot load arbitrary height")
 }
 
 // LegacyAmino returns SimApp's amino codec.
@@ -380,16 +385,12 @@ func (app *OsmosisApp) SimulationManager() *module.SimulationManager {
 // API server.
 func (app *OsmosisApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
 	clientCtx := apiSvr.ClientCtx
-	rpc.RegisterRoutes(clientCtx, apiSvr.Router)
-	// Register legacy tx routes.
-	authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
 	// Register new tx routes from grpc-gateway.
 	authtx.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
 	// Register new tendermint queries routes from grpc-gateway.
 	tmservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
 
-	// Register legacy and grpc-gateway routes for all modules.
-	ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
+	// Register grpc-gateway routes for all modules.
 	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
 
 	// register swagger API from root so that other applications can override easily
@@ -406,25 +407,34 @@ func (app *OsmosisApp) RegisterTxService(clientCtx client.Context) {
 // RegisterTendermintService implements the Application.RegisterTendermintService
 // method.
 func (app *OsmosisApp) RegisterTendermintService(clientCtx client.Context) {
-	tmservice.RegisterTendermintService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.interfaceRegistry)
+	tmservice.RegisterTendermintService(
+		clientCtx,
+		app.BaseApp.GRPCQueryRouter(),
+		app.interfaceRegistry,
+		app.Query,
+	)
 }
 
 // configure store loader that checks if version == upgradeHeight and applies store upgrades
-func (app *OsmosisApp) setupUpgradeStoreLoaders() {
-	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
+func getUpgradeStoreOption(keeper upgradekeeper.Keeper) baseapp.StoreOption {
+	upgradeInfo, err := keeper.ReadUpgradeInfoFromDisk()
 	if err != nil {
-		panic(fmt.Sprintf("failed to read upgrade info from disk %s", err))
+		panic(err)
 	}
 
-	if app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
-		return
+	if keeper.IsSkipHeight(upgradeInfo.Height) {
+		return nil
 	}
 
+	// note - replicates orig. behavior, which looped through upgrades and SetStoreLoader for each...
+	// was that intentional? todo
+	var opt baseapp.StoreOption
 	for _, upgrade := range Upgrades {
 		if upgradeInfo.Name == upgrade.UpgradeName {
-			app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &upgrade.StoreUpgrades))
+			opt = upgradetypes.UpgradeStoreOption(uint64(upgradeInfo.Height), &upgrade.StoreUpgrades)
 		}
 	}
+	return opt
 }
 
 func (app *OsmosisApp) setupUpgradeHandlers() {

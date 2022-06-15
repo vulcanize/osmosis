@@ -345,7 +345,7 @@ func (pa *Pool) calcOutAmtGivenIn(tokenIn sdk.Coin, tokenOutDenom string, swapFe
 	}
 	tokenInSupply, tokenOutSupply := reserves[0], reserves[1]
 	// We are solving for the amount of token out, hence x = tokenOutSupply, y = tokenInSupply
-	cfmmOut := solveCfmm(tokenOutSupply, tokenInSupply, tokenIn.Amount.ToDec())
+	cfmmOut := solveCfmm(tokenOutSupply, tokenInSupply, sdk.NewDecFromInt(tokenIn.Amount))
 	outAmt := pa.getDescaledPoolAmt(tokenOutDenom, cfmmOut)
 	return outAmt, nil
 }
@@ -359,7 +359,7 @@ func (pa *Pool) calcInAmtGivenOut(tokenOut sdk.Coin, tokenInDenom string, swapFe
 	tokenInSupply, tokenOutSupply := reserves[0], reserves[1]
 	// We are solving for the amount of token in, cfmm(x,y) = cfmm(x + x_in, y - y_out)
 	// x = tokenInSupply, y = tokenOutSupply, yIn = -tokenOutAmount
-	cfmmIn := solveCfmm(tokenInSupply, tokenOutSupply, tokenOut.Amount.ToDec().Neg())
+	cfmmIn := solveCfmm(tokenInSupply, tokenOutSupply, sdk.NewDecFromInt(tokenOut.Amount).Neg())
 	inAmt := pa.getDescaledPoolAmt(tokenInDenom, cfmmIn.NegMut())
 	return inAmt, nil
 }
@@ -391,7 +391,7 @@ func (pa *Pool) joinPoolSharesInternal(ctx sdk.Context, tokensIn sdk.Coins, swap
 	if err != nil {
 		return sdk.ZeroInt(), sdk.NewCoins(), err
 	}
-	pa.updatePoolForJoin(tokensIn.Sub(remCoins), numShares)
+	pa.updatePoolForJoin(tokensIn.Sub(remCoins...), numShares)
 
 	for _, coin := range remCoins {
 		// TODO: Perhaps add a method to skip if this is too small.

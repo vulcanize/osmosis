@@ -3,9 +3,8 @@ package keeper_test
 import (
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/osmosis-labs/osmosis/v9/x/gamm/pool-models/balancer"
@@ -97,7 +96,7 @@ func (suite *KeeperTestSuite) TestUnpool() {
 			poolCreateAcc := delAddrs[0]
 			poolJoinAcc := delAddrs[1]
 			for _, acc := range delAddrs {
-				err := simapp.FundAccount(suite.App.BankKeeper, suite.Ctx, acc, defaultAcctFunds)
+				err := testutil.FundAccount(suite.App.BankKeeper, suite.Ctx, acc, defaultAcctFunds)
 				suite.Require().NoError(err)
 			}
 
@@ -119,7 +118,7 @@ func (suite *KeeperTestSuite) TestUnpool() {
 			suite.Require().NoError(err)
 			balanceAfterJoin := suite.App.BankKeeper.GetAllBalances(suite.Ctx, poolJoinAcc)
 
-			joinPoolAmt, _ := balanceBeforeJoin.SafeSub(balanceAfterJoin)
+			joinPoolAmt, _ := balanceBeforeJoin.SafeSub(balanceAfterJoin...)
 
 			pool, err := suite.App.GAMMKeeper.GetPoolAndPoke(suite.Ctx, poolId)
 			suite.Require().NoError(err)
@@ -207,7 +206,7 @@ func (suite *KeeperTestSuite) TestUnpool() {
 			// exitPool has rounding difference,
 			// we test if correct amt has been exited and locked via comparing with rounding tolerance
 			roundingToleranceCoins := sdk.NewCoins(sdk.NewCoin(defaultFooAsset.Token.Denom, sdk.NewInt(5)), sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(5)))
-			roundDownTolerance, _ := joinPoolAmt.SafeSub(roundingToleranceCoins)
+			roundDownTolerance, _ := joinPoolAmt.SafeSub(roundingToleranceCoins...)
 			roundUpTolerance := joinPoolAmt.Add(roundingToleranceCoins...)
 			suite.Require().True(cumulativeNewLockCoins.AmountOf("foo").GTE(roundDownTolerance.AmountOf("foo")))
 			suite.Require().True(cumulativeNewLockCoins.AmountOf(sdk.DefaultBondDenom).GTE(roundDownTolerance.AmountOf(sdk.DefaultBondDenom)))

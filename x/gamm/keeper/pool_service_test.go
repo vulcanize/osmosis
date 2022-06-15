@@ -84,11 +84,12 @@ func (suite *KeeperTestSuite) TestCreateBalancerPool() {
 			// check account's balance is correctly reduced
 			acc1Bal := suite.App.BankKeeper.GetAllBalances(suite.Ctx, suite.TestAccs[0])
 			suite.Require().Equal(acc1Bal.String(),
-				prevAcc1Bal.Sub(params.PoolCreationFee).
+				prevAcc1Bal.Sub(params.PoolCreationFee...).
 					Sub(sdk.Coins{
 						sdk.NewCoin("bar", sdk.NewInt(10000)),
 						sdk.NewCoin("foo", sdk.NewInt(10000)),
-					}).Add(sdk.NewCoin(types.GetPoolShareDenom(pool.GetId()), types.InitPoolSharesSupply)).String(),
+					}...).
+					Add(sdk.NewCoin(types.GetPoolShareDenom(pool.GetId()), types.InitPoolSharesSupply)).String(),
 			)
 
 			liquidity := suite.App.GAMMKeeper.GetTotalLiquidity(suite.Ctx)
@@ -267,7 +268,7 @@ func (suite *KeeperTestSuite) TestJoinPoolNoSwap() {
 				suite.Require().Equal(types.OneShare.MulRaw(50).String(), suite.App.BankKeeper.GetBalance(suite.Ctx, suite.TestAccs[1], "gamm/pool/1").Amount.String())
 				balancesAfter := suite.App.BankKeeper.GetAllBalances(suite.Ctx, suite.TestAccs[1])
 
-				deltaBalances, _ := balancesBefore.SafeSub(balancesAfter)
+				deltaBalances, _ := balancesBefore.SafeSub(balancesAfter...)
 				// The pool was created with the 10000foo, 10000bar, and the pool share was minted as 100000000gamm/pool/1.
 				// Thus, to get the 50*OneShare gamm/pool/1, (10000foo, 10000bar) * (1 / 2) balances should be provided.
 				suite.Require().Equal("5000", deltaBalances.AmountOf("foo").String())
@@ -361,7 +362,7 @@ func (suite *KeeperTestSuite) TestExitPool() {
 				suite.Require().Equal(types.InitPoolSharesSupply.QuoRaw(2).String(), suite.App.BankKeeper.GetBalance(suite.Ctx, suite.TestAccs[0], "gamm/pool/1").Amount.String())
 				balancesAfter := suite.App.BankKeeper.GetAllBalances(suite.Ctx, suite.TestAccs[0])
 
-				deltaBalances, _ := balancesBefore.SafeSub(balancesAfter)
+				deltaBalances, _ := balancesBefore.SafeSub(balancesAfter...)
 				// The pool was created with the 10000foo, 10000bar, and the pool share was minted as 100*OneShare gamm/pool/1.
 				// Thus, to refund the 50*OneShare gamm/pool/1, (10000foo, 10000bar) * (1 / 2) balances should be refunded.
 				suite.Require().Equal("-5000", deltaBalances.AmountOf("foo").String())
@@ -499,7 +500,7 @@ func (suite *KeeperTestSuite) TestJoinPoolExitPool_InverseRelationship() {
 		_, err = suite.App.GAMMKeeper.ExitPool(suite.Ctx, joinPoolAcc, poolId, tc.joinPoolShareAmt, sdk.Coins{})
 
 		balanceAfterExit := suite.App.BankKeeper.GetAllBalances(suite.Ctx, joinPoolAcc)
-		deltaBalance, _ := balanceBeforeJoin.SafeSub(balanceAfterExit)
+		deltaBalance, _ := balanceBeforeJoin.SafeSub(balanceAfterExit...)
 
 		// due to rounding, `balanceBeforeJoin` and `balanceAfterExit` have neglectable difference
 		// coming from rounding in exitPool.Here we test if the difference is within rounding tolerance range

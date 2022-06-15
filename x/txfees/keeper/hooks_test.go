@@ -3,9 +3,9 @@ package keeper_test
 import (
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/testutil/testdata"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 
 	gammtypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
 	"github.com/osmosis-labs/osmosis/v9/x/txfees/types"
@@ -63,7 +63,7 @@ func (suite *KeeperTestSuite) TestTxFeesAfterEpochEnd() {
 	fullExpectedOutput := expectedOutput1.Add(expectedOutput2).Add(expectedOutput3)
 
 	_, _, addr0 := testdata.KeyTestPubAddr()
-	simapp.FundAccount(suite.App.BankKeeper, suite.Ctx, addr0, coins)
+	testutil.FundAccount(suite.App.BankKeeper, suite.Ctx, addr0, coins)
 	suite.App.BankKeeper.SendCoinsFromAccountToModule(suite.Ctx, addr0, types.NonNativeFeeCollectorName, coins)
 
 	moduleAddrFee := suite.App.AccountKeeper.GetModuleAddress(types.FeeCollectorName)

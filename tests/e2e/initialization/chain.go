@@ -22,14 +22,18 @@ func new(id, dataDir string) (*internalChain, error) {
 	}, nil
 }
 
-func (c *internalChain) export() *Chain {
+func (c *internalChain) export() (*Chain, error) {
 	exportNodes := make([]*Node, 0, len(c.nodes))
 	for _, v := range c.nodes {
-		exportNodes = append(exportNodes, v.export())
+		node, err := v.export()
+		if err != nil {
+			return nil, err
+		}
+		exportNodes = append(exportNodes, node)
 	}
 
 	return &Chain{
 		ChainMeta: c.chainMeta,
 		Nodes:     exportNodes,
-	}
+	}, nil
 }

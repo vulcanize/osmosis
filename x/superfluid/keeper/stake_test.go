@@ -833,7 +833,7 @@ func (suite *KeeperTestSuite) TestRefreshIntermediaryDelegationAmounts() {
 				// calculating the estimated delegation amount for multiplier change
 				expDelegation := intermediaryDels[index].Mul(multiplier).Quo(originMultiplier)
 				lpTokenAmount := sdk.NewInt(1000000)
-				decAmt := multiplier.Mul(lpTokenAmount.ToDec())
+				decAmt := multiplier.Mul(sdk.NewDecFromInt(lpTokenAmount))
 				asset := suite.App.SuperfluidKeeper.GetSuperfluidAsset(suite.Ctx, expAcc.Denom)
 				expAmount := suite.App.SuperfluidKeeper.GetRiskAdjustedOsmoValue(suite.Ctx, asset, decAmt.RoundInt())
 

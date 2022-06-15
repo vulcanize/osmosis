@@ -42,9 +42,9 @@ func TestFullDenom(t *testing.T) {
 			subdenom:     "",
 			expFullDenom: fmt.Sprintf("factory/%s/", actor.String()),
 		},
-		"invalid sub-denom (contains underscore)": {
+		"invalid sub-denom": {
 			addr:     actor.String(),
-			subdenom: "sub_denom",
+			subdenom: "sub~denom",
 			expErr:   true,
 		},
 	}
@@ -133,8 +133,8 @@ func TestSpotPrice(t *testing.T) {
 	// 20 star to 1 osmo
 	starPool := preparePool(t, ctx, osmosis, actor, poolFunds)
 
-	uosmo := poolFunds[0].Amount.ToDec().MustFloat64()
-	ustar := poolFunds[1].Amount.ToDec().MustFloat64()
+	uosmo := sdk.NewDecFromInt(poolFunds[0].Amount).MustFloat64()
+	ustar := sdk.NewDecFromInt(poolFunds[1].Amount).MustFloat64()
 
 	starPrice := sdk.MustNewDecFromStr(fmt.Sprintf("%f", uosmo/ustar))
 	starFee := sdk.MustNewDecFromStr(fmt.Sprintf("%f", swapFee))
@@ -270,15 +270,15 @@ func TestEstimateSwap(t *testing.T) {
 	starPool := preparePool(t, ctx, osmosis, actor, poolFunds)
 
 	// Estimate swap rate
-	uosmo := poolFunds[0].Amount.ToDec().MustFloat64()
-	ustar := poolFunds[1].Amount.ToDec().MustFloat64()
+	uosmo := sdk.NewDecFromInt(poolFunds[0].Amount).MustFloat64()
+	ustar := sdk.NewDecFromInt(poolFunds[1].Amount).MustFloat64()
 	swapRate := ustar / uosmo
 
 	amountIn := sdk.NewInt(10000)
 	zeroAmount := sdk.ZeroInt()
 	negativeAmount := amountIn.Neg()
 
-	amount := amountIn.ToDec().MustFloat64()
+	amount := sdk.NewDecFromInt(amountIn).MustFloat64()
 	starAmount := sdk.NewInt(int64(amount * swapRate))
 
 	starSwapAmount := wasmbindings.SwapAmount{Out: &starAmount}
@@ -483,7 +483,7 @@ func TestEstimateSwap(t *testing.T) {
 				return
 			}
 			require.NoError(t, gotErr)
-			assert.InEpsilonf(t, (*spec.expCost.Out).ToDec().MustFloat64(), (*gotCost.Out).ToDec().MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotCost.Out.String())
+			assert.InEpsilonf(t, sdk.NewDecFromInt(*spec.expCost.Out).MustFloat64(), sdk.NewDecFromInt(*gotCost.Out).MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotCost.Out.String())
 		})
 	}
 }

@@ -212,8 +212,8 @@ func TestCalculateAmountOutAndIn_InverseRelationship(t *testing.T) {
 
 				require.Equal(t, initialOut.Denom, inverseTokenOut.Denom)
 
-				expected := initialOut.Amount.ToDec()
-				actual := inverseTokenOut.Amount.ToDec()
+				expected := sdk.NewDecFromInt(initialOut.Amount)
+				actual := sdk.NewDecFromInt(inverseTokenOut.Amount)
 
 				// allow a rounding error of up to 1 for this relation
 				tol := sdk.NewDec(1)
@@ -307,27 +307,29 @@ func TestCalcSingleAssetInAndOut_InverseRelationship(t *testing.T) {
 				initialWeightOut := sdk.NewInt(tc.initialWeightOut)
 				initialWeightIn := sdk.NewInt(tc.initialWeightIn)
 
-				initialTotalShares := types.InitPoolSharesSupply.ToDec()
+				initialTotalShares := sdk.NewDecFromInt(types.InitPoolSharesSupply)
 				initialCalcTokenOut := sdk.NewInt(tc.tokenOut)
 
 				actualSharesOut := balancer.CalcPoolSharesOutGivenSingleAssetIn(
-					initialPoolBalanceOut.ToDec(),
-					initialWeightOut.ToDec().Quo(initialWeightOut.Add(initialWeightIn).ToDec()),
+					sdk.NewDecFromInt(initialPoolBalanceOut),
+					sdk.NewDecFromInt(initialWeightOut).Quo(
+						sdk.NewDecFromInt(initialWeightOut.Add(initialWeightIn))),
 					initialTotalShares,
-					initialCalcTokenOut.ToDec(),
+					sdk.NewDecFromInt(initialCalcTokenOut),
 					swapFeeDec,
 				)
 
 				inverseCalcTokenOut := balancer.CalcSingleAssetInGivenPoolSharesOut(
-					initialPoolBalanceOut.Add(initialCalcTokenOut).ToDec(),
-					initialWeightOut.ToDec().Quo(initialWeightOut.Add(initialWeightIn).ToDec()),
+					sdk.NewDecFromInt(initialPoolBalanceOut.Add(initialCalcTokenOut)),
+					sdk.NewDecFromInt(initialWeightOut).Quo(
+						sdk.NewDecFromInt(initialWeightOut.Add(initialWeightIn))),
 					initialTotalShares.Add(actualSharesOut),
 					actualSharesOut,
 					swapFeeDec,
 				)
 
 				tol := sdk.NewDec(1)
-				require.True(osmoutils.DecApproxEq(t, initialCalcTokenOut.ToDec(), inverseCalcTokenOut, tol))
+				require.True(osmoutils.DecApproxEq(t, sdk.NewDecFromInt(initialCalcTokenOut), inverseCalcTokenOut, tol))
 			})
 		}
 	}

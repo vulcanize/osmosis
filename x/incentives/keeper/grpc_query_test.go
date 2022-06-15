@@ -410,7 +410,7 @@ func (suite *KeeperTestSuite) TestGRPCToDistributeCoins() {
 	// check after distribution
 	res, err = suite.querier.ModuleToDistributeCoins(sdk.WrapSDKContext(suite.Ctx), &types.ModuleToDistributeCoinsRequest{})
 	suite.Require().NoError(err)
-	suite.Require().Equal(res.Coins, coins.Sub(distrCoins))
+	suite.Require().Equal(res.Coins, coins.Sub(distrCoins...))
 
 	// distribute second round to stakers
 	distrCoins, err = suite.querier.Distribute(suite.Ctx, gauges)

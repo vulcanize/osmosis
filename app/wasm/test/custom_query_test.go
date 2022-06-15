@@ -12,8 +12,12 @@ import (
 	"github.com/CosmWasm/wasmd/x/wasm/keeper"
 	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/cosmos/cosmos-sdk/simapp"
+
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
+	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
+	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 
 	"github.com/osmosis-labs/osmosis/v9/app"
 	"github.com/osmosis-labs/osmosis/v9/app/wasm"
@@ -31,7 +35,7 @@ var defaultFunds = sdk.NewCoins(
 )
 
 func SetupCustomApp(t *testing.T, addr sdk.AccAddress) (*app.OsmosisApp, sdk.Context) {
-	osmosis, ctx := CreateTestInput()
+	osmosis, ctx := CreateTestInput(t)
 	wasmKeeper := osmosis.WasmKeeper
 
 	storeReflectCode(t, ctx, osmosis, addr)
@@ -142,9 +146,9 @@ func TestQuerySpotPrice(t *testing.T) {
 	price, err := strconv.ParseFloat(resp.Price, 64)
 	require.NoError(t, err)
 
-	uosmo, err := poolFunds[0].Amount.ToDec().Float64()
+	uosmo, err := sdk.NewDecFromInt(poolFunds[0].Amount).Float64()
 	require.NoError(t, err)
-	ustar, err := poolFunds[1].Amount.ToDec().Float64()
+	ustar, err := sdk.NewDecFromInt(poolFunds[1].Amount).Float64()
 	require.NoError(t, err)
 
 	expected := ustar / uosmo
@@ -193,9 +197,9 @@ func TestQueryEstimateSwap(t *testing.T) {
 	fundAccount(t, ctx, osmosis, reflect, defaultFunds)
 
 	// Estimate swap rate
-	uosmo, err := poolFunds[0].Amount.ToDec().Float64()
+	uosmo, err := sdk.NewDecFromInt(poolFunds[0].Amount).Float64()
 	require.NoError(t, err)
-	ustar, err := poolFunds[1].Amount.ToDec().Float64()
+	ustar, err := sdk.NewDecFromInt(poolFunds[1].Amount).Float64()
 	require.NoError(t, err)
 	swapRate := ustar / uosmo
 
@@ -219,10 +223,10 @@ func TestQueryEstimateSwap(t *testing.T) {
 	queryCustom(t, ctx, osmosis, reflect, query, &resp)
 	require.NotNil(t, resp.Amount.Out)
 	require.Nil(t, resp.Amount.In)
-	cost, err := (*resp.Amount.Out).ToDec().Float64()
+	cost, err := sdk.NewDecFromInt(*resp.Amount.Out).Float64()
 	require.NoError(t, err)
 
-	amount, err := amountIn.ToDec().Float64()
+	amount, err := sdk.NewDecFromInt(amountIn).Float64()
 	require.NoError(t, err)
 	expected := amount * swapRate // out
 	require.InEpsilonf(t, expected, cost, epsilon, fmt.Sprintf("Outside of tolerance (%f)", epsilon))
@@ -248,10 +252,10 @@ func TestQueryEstimateSwap(t *testing.T) {
 	queryCustom(t, ctx, osmosis, reflect, query, &resp)
 	require.NotNil(t, resp.Amount.In)
 	require.Nil(t, resp.Amount.Out)
-	cost, err = (*resp.Amount.In).ToDec().Float64()
+	cost, err = sdk.NewDecFromInt(*resp.Amount.In).Float64()
 	require.NoError(t, err)
 
-	amount, err = amountOut.ToDec().Float64()
+	amount, err = sdk.NewDecFromInt(amountOut).Float64()
 	require.NoError(t, err)
 	expected = amount * 1. / swapRate
 	require.InEpsilonf(t, expected, cost, epsilon, fmt.Sprintf("Outside of tolerance (%f)", epsilon))
@@ -299,6 +303,7 @@ func assertValidShares(t *testing.T, shares wasmvmtypes.Coin, poolID uint64) {
 
 func storeReflectCode(t *testing.T, ctx sdk.Context, osmosis *app.OsmosisApp, addr sdk.AccAddress) {
 	govKeeper := osmosis.GovKeeper
+	msgSvr := govkeeper.NewMsgServerImpl(*govKeeper)
 	wasmCode, err := ioutil.ReadFile("../testdata/osmo_reflect.wasm")
 	require.NoError(t, err)
 
@@ -307,13 +312,11 @@ func storeReflectCode(t *testing.T, ctx sdk.Context, osmosis *app.OsmosisApp, ad
 		p.WASMByteCode = wasmCode
 	})
 
-	// when stored
-	storedProposal, err := govKeeper.SubmitProposal(ctx, src)
+	govAcct := govKeeper.GetGovernanceAccount(ctx).GetAddress()
+	srcAny, err := codectypes.NewAnyWithValue(src)
 	require.NoError(t, err)
-
-	// and proposal execute
-	handler := govKeeper.Router().GetRoute(storedProposal.ProposalRoute())
-	err = handler(ctx, storedProposal.GetContent())
+	msg := govv1.NewMsgExecLegacyContent(srcAny, govAcct.String())
+	_, err = msgSvr.ExecLegacyContent(ctx, msg)
 	require.NoError(t, err)
 }
 
@@ -328,7 +331,7 @@ func instantiateReflectContract(t *testing.T, ctx sdk.Context, osmosis *app.Osmo
 }
 
 func fundAccount(t *testing.T, ctx sdk.Context, osmosis *app.OsmosisApp, addr sdk.AccAddress, coins sdk.Coins) {
-	err := simapp.FundAccount(
+	err := testutil.FundAccount(
 		osmosis.BankKeeper,
 		ctx,
 		addr,

@@ -89,7 +89,7 @@ func (k Keeper) addTokenToLock(ctx sdk.Context, lock *types.PeriodLock, coin sdk
 // removeTokensFromLock is called by lockup slash function - called by superfluid module only.
 func (k Keeper) removeTokensFromLock(ctx sdk.Context, lock *types.PeriodLock, coins sdk.Coins) error {
 	// TODO: Handle 100% slash eventually, not needed for osmosis codebase atm.
-	lock.Coins = lock.Coins.Sub(coins)
+	lock.Coins = lock.Coins.Sub(coins...)
 
 	err := k.setLock(ctx, *lock)
 	if err != nil {
@@ -413,7 +413,7 @@ func (k Keeper) splitLock(ctx sdk.Context, lock types.PeriodLock, coins sdk.Coin
 	if lock.IsUnlocking() {
 		return types.PeriodLock{}, fmt.Errorf("cannot split unlocking lock")
 	}
-	lock.Coins = lock.Coins.Sub(coins)
+	lock.Coins = lock.Coins.Sub(coins...)
 	err := k.setLock(ctx, lock)
 	if err != nil {
 		return types.PeriodLock{}, err

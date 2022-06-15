@@ -29,7 +29,7 @@ func InitChain(id, dataDir string, nodeConfigs []*NodeConfig, votingPeriod time.
 
 	var peers []string
 	for _, peer := range chain.nodes {
-		peerID := fmt.Sprintf("%s@%s:26656", peer.getNodeKey().ID(), peer.moniker)
+		peerID := fmt.Sprintf("%s@%s:26656", peer.getNodeKey().ID, peer.moniker)
 		peer.peerId = peerID
 		peers = append(peers, peerID)
 	}
@@ -41,7 +41,7 @@ func InitChain(id, dataDir string, nodeConfigs []*NodeConfig, votingPeriod time.
 			}
 		}
 	}
-	return chain.export(), nil
+	return chain.export()
 }
 
 func InitSingleNode(chainId, dataDir string, existingGenesisDir string, nodeConfig *NodeConfig, votingPeriod time.Duration, trustHeight int64, trustHash string, stateSyncRPCServers []string) (*Node, error) {
@@ -71,5 +71,5 @@ func InitSingleNode(chainId, dataDir string, existingGenesisDir string, nodeConf
 		return nil, err
 	}
 
-	return newNode.export(), nil
+	return newNode.export()
 }
