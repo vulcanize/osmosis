@@ -89,6 +89,8 @@ type ptrIterator struct {
 }
 
 func (iter ptrIterator) ptr() *ptr {
+	// ptrIterator becomes invalid once retrieve ptr
+	defer iter.Close()
 	if !iter.Valid() {
 		return nil
 	}
@@ -97,8 +99,6 @@ func (iter ptrIterator) ptr() *ptr {
 		level: iter.level,
 		key:   iter.Key()[7:],
 	}
-	// ptrIterator becomes invalid once retrieve ptr
-	iter.Close()
 	return &res
 }
 
