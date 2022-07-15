@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -137,6 +138,7 @@ var (
 			IsValidator:        true,
 		},
 	}
+	reContainerExists = regexp.MustCompile(`container already exists`)
 )
 
 type IntegrationTestSuite struct {
@@ -237,6 +239,18 @@ func (s *IntegrationTestSuite) TearDownSuite() {
 	}
 }
 
+func (s *IntegrationTestSuite) runWithRetry(runOpts *dockertest.RunOptions, res **dockertest.Resource) error {
+	// run the container, but if it already exists, clean up the existing one and retry
+	s.T().Helper()
+	var err error
+	*res, err = s.dkrPool.RunWithOptions(runOpts, noRestart)
+	if err != nil && reContainerExists.MatchString(err.Error()) {
+		s.Require().NoError(s.dkrPool.RemoveContainerByName(runOpts.Name))
+		*res, err = s.dkrPool.RunWithOptions(runOpts, noRestart)
+	}
+	return err
+}
+
 func (s *IntegrationTestSuite) runValidators(chainConfig *chainConfig, dockerRepository, dockerTag string, portOffset int) {
 	s.T().Logf("starting %s validator containers...", chainConfig.meta.Id)
 	s.valResources[chainConfig.meta.Id] = make([]*dockertest.Resource, len(chainConfig.validators)-len(chainConfig.skipRunValidatorIndexes))
@@ -281,8 +295,9 @@ func (s *IntegrationTestSuite) runValidators(chainConfig *chainConfig, dockerRep
 			}
 		}
 
-		resource, err := s.dkrPool.RunWithOptions(runOpts, noRestart)
-		s.Require().NoError(err)
+		var resource *dockertest.Resource
+		s.Require().NoError(s.runWithRetry(runOpts, &resource))
+		s.T().Cleanup(func() { s.dkrPool.Purge(resource) })
 
 		s.valResources[chainConfig.meta.Id][i] = resource
 		s.T().Logf("started %s validator container: %s", resource.Container.Name[1:], resource.Container.ID)
@@ -332,42 +347,40 @@ func (s *IntegrationTestSuite) runIBCRelayer(chainA *chainConfig, chainB *chainC
 	)
 	s.Require().NoError(err)
 
-	s.hermesResource, err = s.dkrPool.RunWithOptions(
-		&dockertest.RunOptions{
-			Name:       fmt.Sprintf("%s-%s-relayer", chainA.meta.Id, chainB.meta.Id),
-			Repository: s.dockerImages.RelayerRepository,
-			Tag:        s.dockerImages.RelayerTag,
-			NetworkID:  s.dkrNet.Network.ID,
-			Cmd: []string{
-				"start",
-			},
-			User: "root:root",
-			Mounts: []string{
-				fmt.Sprintf("%s/:/root/hermes", hermesCfgPath),
-			},
-			ExposedPorts: []string{
-				"3031",
-			},
-			PortBindings: map[docker.Port][]docker.PortBinding{
-				"3031/tcp": {{HostIP: "", HostPort: "3031"}},
-			},
-			Env: []string{
-				fmt.Sprintf("OSMO_A_E2E_CHAIN_ID=%s", chainA.meta.Id),
-				fmt.Sprintf("OSMO_B_E2E_CHAIN_ID=%s", chainB.meta.Id),
-				fmt.Sprintf("OSMO_A_E2E_VAL_MNEMONIC=%s", osmoAVal.Mnemonic),
-				fmt.Sprintf("OSMO_B_E2E_VAL_MNEMONIC=%s", osmoBVal.Mnemonic),
-				fmt.Sprintf("OSMO_A_E2E_VAL_HOST=%s", s.valResources[chainA.meta.Id][0].Container.Name[1:]),
-				fmt.Sprintf("OSMO_B_E2E_VAL_HOST=%s", s.valResources[chainB.meta.Id][0].Container.Name[1:]),
-			},
-			Entrypoint: []string{
-				"sh",
-				"-c",
-				"chmod +x /root/hermes/hermes_bootstrap.sh && /root/hermes/hermes_bootstrap.sh",
-			},
+	runOpts := &dockertest.RunOptions{
+		Name:       fmt.Sprintf("%s-%s-relayer", chainA.meta.Id, chainB.meta.Id),
+		Repository: s.dockerImages.RelayerRepository,
+		Tag:        s.dockerImages.RelayerTag,
+		NetworkID:  s.dkrNet.Network.ID,
+		Cmd: []string{
+			"start",
 		},
-		noRestart,
-	)
-	s.Require().NoError(err)
+		User: "root:root",
+		Mounts: []string{
+			fmt.Sprintf("%s/:/root/hermes", hermesCfgPath),
+		},
+		ExposedPorts: []string{
+			"3031",
+		},
+		PortBindings: map[docker.Port][]docker.PortBinding{
+			"3031/tcp": {{HostIP: "", HostPort: "3031"}},
+		},
+		Env: []string{
+			fmt.Sprintf("OSMO_A_E2E_CHAIN_ID=%s", chainA.meta.Id),
+			fmt.Sprintf("OSMO_B_E2E_CHAIN_ID=%s", chainB.meta.Id),
+			fmt.Sprintf("OSMO_A_E2E_VAL_MNEMONIC=%s", osmoAVal.Mnemonic),
+			fmt.Sprintf("OSMO_B_E2E_VAL_MNEMONIC=%s", osmoBVal.Mnemonic),
+			fmt.Sprintf("OSMO_A_E2E_VAL_HOST=%s", s.valResources[chainA.meta.Id][0].Container.Name[1:]),
+			fmt.Sprintf("OSMO_B_E2E_VAL_HOST=%s", s.valResources[chainB.meta.Id][0].Container.Name[1:]),
+		},
+		Entrypoint: []string{
+			"sh",
+			"-c",
+			"chmod +x /root/hermes/hermes_bootstrap.sh && /root/hermes/hermes_bootstrap.sh",
+		},
+	}
+	s.Require().NoError(s.runWithRetry(runOpts, &s.hermesResource))
+	s.T().Cleanup(func() { s.dkrPool.Purge(s.hermesResource) })
 
 	endpoint := fmt.Sprintf("http://%s/state", s.hermesResource.GetHostPort("3031/tcp"))
 	s.Require().Eventually(
@@ -428,26 +441,24 @@ func (s *IntegrationTestSuite) configureChain(chainId string, validatorConfigs [
 
 	votingPeriodDuration := time.Duration(int(newChainConfig.votingPeriod) * 1000000000)
 
-	s.initResource, err = s.dkrPool.RunWithOptions(
-		&dockertest.RunOptions{
-			Name:       fmt.Sprintf("%s", chainId),
-			Repository: s.dockerImages.InitRepository,
-			Tag:        s.dockerImages.InitTag,
-			NetworkID:  s.dkrNet.Network.ID,
-			Cmd: []string{
-				fmt.Sprintf("--data-dir=%s", tmpDir),
-				fmt.Sprintf("--chain-id=%s", chainId),
-				fmt.Sprintf("--config=%s", validatorConfigBytes),
-				fmt.Sprintf("--voting-period=%v", votingPeriodDuration),
-			},
-			User: "root:root",
-			Mounts: []string{
-				fmt.Sprintf("%s:%s", tmpDir, tmpDir),
-			},
+	runOpts := &dockertest.RunOptions{
+		Name:       fmt.Sprintf("%s", chainId),
+		Repository: s.dockerImages.InitRepository,
+		Tag:        s.dockerImages.InitTag,
+		NetworkID:  s.dkrNet.Network.ID,
+		Cmd: []string{
+			fmt.Sprintf("--data-dir=%s", tmpDir),
+			fmt.Sprintf("--chain-id=%s", chainId),
+			fmt.Sprintf("--config=%s", validatorConfigBytes),
+			fmt.Sprintf("--voting-period=%v", votingPeriodDuration),
 		},
-		noRestart,
-	)
-	s.Require().NoError(err)
+		User: "root:root",
+		Mounts: []string{
+			fmt.Sprintf("%s:%s", tmpDir, tmpDir),
+		},
+	}
+	s.Require().NoError(s.runWithRetry(runOpts, &s.initResource))
+	s.T().Cleanup(func() { s.dkrPool.Purge(s.initResource) })
 
 	fileName := fmt.Sprintf("%v/%v-encode", tmpDir, chainId)
 	s.T().Logf("serialized init file for chain-id %v: %v", chainId, fileName)
@@ -488,8 +499,17 @@ func (s *IntegrationTestSuite) configureDockerResources(chainIDOne, chainIDTwo s
 	s.dkrPool, err = dockertest.NewPool("")
 	s.Require().NoError(err)
 
-	s.dkrNet, err = s.dkrPool.CreateNetwork(fmt.Sprintf("%s-%s-testnet", chainIDOne, chainIDTwo))
-	s.Require().NoError(err)
+	name := fmt.Sprintf("%s-%s-testnet", chainIDOne, chainIDTwo)
+	s.dkrNet, err = s.dkrPool.CreateNetwork(name)
+	if err != nil {
+		oldnets, err := s.dkrPool.NetworksByName(name)
+		s.Require().NoError(err)
+		for _, net := range oldnets { // Clean up leftover networks
+			s.Require().NoError(s.dkrPool.RemoveNetwork(&net))
+		}
+		s.dkrNet, err = s.dkrPool.CreateNetwork(name)
+		s.Require().NoError(err)
+	}
 
 	s.valResources = make(map[string][]*dockertest.Resource)
 }
@@ -561,7 +581,7 @@ func (s *IntegrationTestSuite) upgrade() {
 		}
 	}
 
-	// remove all containers so we can upgrade them to the new version
+	// upgrade them to the new version
 	for _, chainConfig := range s.chainConfigs {
 		s.upgradeContainers(chainConfig, chainConfig.propHeight)
 	}
@@ -590,8 +610,10 @@ func (s *IntegrationTestSuite) upgradeContainers(chainConfig *chainConfig, propH
 				fmt.Sprintf("%s/scripts:/osmosis", pwd),
 			},
 		}
-		resource, err := s.dkrPool.RunWithOptions(runOpts, noRestart)
-		s.Require().NoError(err)
+
+		var resource *dockertest.Resource
+		s.Require().NoError(s.runWithRetry(runOpts, &resource))
+		s.T().Cleanup(func() { s.dkrPool.Purge(resource) })
 
 		s.valResources[chain.meta.Id][i] = resource
 		s.T().Logf("started %s validator container: %s", resource.Container.Name[1:], resource.Container.ID)
