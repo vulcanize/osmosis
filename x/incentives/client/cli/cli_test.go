@@ -6,9 +6,9 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/osmosis-labs/osmosis/v7/app"
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/client/cli"
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/types"
+	"github.com/osmosis-labs/osmosis/v9/app"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/client/cli"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/types"
 
 	clitestutil "github.com/cosmos/cosmos-sdk/testutil/cli"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
@@ -26,9 +26,11 @@ func (s *IntegrationTestSuite) SetupSuite() {
 
 	s.cfg = app.DefaultConfig()
 
-	s.network = network.New(s.T(), s.cfg)
+	var err error
+	s.network, err = network.New(s.T(), s.T().TempDir(), s.cfg)
+	s.Require().NoError(err)
 
-	_, err := s.network.WaitForHeight(1)
+	_, err = s.network.WaitForHeight(1)
 	s.Require().NoError(err)
 }
 

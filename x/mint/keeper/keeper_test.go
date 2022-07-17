@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 	"github.com/cosmos/cosmos-sdk/x/distribution"
 
 	"github.com/stretchr/testify/suite"
 	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/osmosis-labs/osmosis/v7/app/apptesting"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
-	"github.com/osmosis-labs/osmosis/v7/x/mint/types"
-	poolincentivestypes "github.com/osmosis-labs/osmosis/v7/x/pool-incentives/types"
+	"github.com/osmosis-labs/osmosis/v9/app/apptesting"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/x/mint/types"
+	poolincentivestypes "github.com/osmosis-labs/osmosis/v9/x/pool-incentives/types"
 )
 
 type KeeperTestSuite struct {
@@ -43,7 +43,7 @@ func (suite *KeeperTestSuite) TestMintCoinsToFeeCollectorAndGetProportions() {
 	fee = sdk.NewCoin("stake", sdk.NewInt(100000))
 	fees = sdk.NewCoins(fee)
 
-	err := simapp.FundModuleAccount(suite.App.BankKeeper,
+	err := testutil.FundModuleAccount(suite.App.BankKeeper,
 		suite.Ctx,
 		authtypes.FeeCollectorName,
 		fees)
@@ -101,13 +101,13 @@ func (suite *KeeperTestSuite) TestDistrAssetToDeveloperRewardsAddrWhenNotEmpty()
 	feePool := suite.App.DistrKeeper.GetFeePool(suite.Ctx)
 	feeCollector := suite.App.AccountKeeper.GetModuleAddress(authtypes.FeeCollectorName)
 	suite.Equal(
-		mintCoin.Amount.ToDec().Mul(params.DistributionProportions.Staking).TruncateInt(),
+		sdk.NewDecFromInt(mintCoin.Amount).Mul(params.DistributionProportions.Staking).TruncateInt(),
 		suite.App.BankKeeper.GetAllBalances(suite.Ctx, feeCollector).AmountOf("stake"))
 	suite.Equal(
-		mintCoin.Amount.ToDec().Mul(params.DistributionProportions.CommunityPool),
+		sdk.NewDecFromInt(mintCoin.Amount).Mul(params.DistributionProportions.CommunityPool),
 		feePool.CommunityPool.AmountOf("stake"))
 	suite.Equal(
-		mintCoin.Amount.ToDec().Mul(params.DistributionProportions.DeveloperRewards).TruncateInt(),
+		sdk.NewDecFromInt(mintCoin.Amount).Mul(params.DistributionProportions.DeveloperRewards).TruncateInt(),
 		suite.App.BankKeeper.GetBalance(suite.Ctx, devRewardsReceiver, "stake").Amount)
 
 	// Test for multiple dev reward addresses
@@ -129,10 +129,10 @@ func (suite *KeeperTestSuite) TestDistrAssetToDeveloperRewardsAddrWhenNotEmpty()
 	suite.NoError(err)
 
 	suite.Equal(
-		mintCoins[0].Amount.ToDec().Mul(params.DistributionProportions.DeveloperRewards).Mul(params.WeightedDeveloperRewardsReceivers[0].Weight).TruncateInt(),
+		sdk.NewDecFromInt(mintCoins[0].Amount).Mul(params.DistributionProportions.DeveloperRewards).Mul(params.WeightedDeveloperRewardsReceivers[0].Weight).TruncateInt(),
 		suite.App.BankKeeper.GetBalance(suite.Ctx, devRewardsReceiver2, "stake").Amount)
 	suite.Equal(
-		mintCoins[0].Amount.ToDec().Mul(params.DistributionProportions.DeveloperRewards).Mul(params.WeightedDeveloperRewardsReceivers[1].Weight).TruncateInt(),
+		sdk.NewDecFromInt(mintCoins[0].Amount).Mul(params.DistributionProportions.DeveloperRewards).Mul(params.WeightedDeveloperRewardsReceivers[1].Weight).TruncateInt(),
 		suite.App.BankKeeper.GetBalance(suite.Ctx, devRewardsReceiver3, "stake").Amount)
 }
 
@@ -157,10 +157,10 @@ func (suite *KeeperTestSuite) TestDistrAssetToCommunityPoolWhenNoDeveloperReward
 		Add(params.DistributionProportions.DeveloperRewards).
 		Add(params.DistributionProportions.CommunityPool)
 	suite.Equal(
-		mintCoins[0].Amount.ToDec().Mul(params.DistributionProportions.Staking).TruncateInt(),
+		sdk.NewDecFromInt(mintCoins[0].Amount).Mul(params.DistributionProportions.Staking).TruncateInt(),
 		suite.App.BankKeeper.GetBalance(suite.Ctx, feeCollector, "stake").Amount)
 	suite.Equal(
-		mintCoins[0].Amount.ToDec().Mul(proportionToCommunity),
+		sdk.NewDecFromInt(mintCoins[0].Amount).Mul(proportionToCommunity),
 		feePool.CommunityPool.AmountOf("stake"))
 
 	// Mint more and community pool should be increased
@@ -173,9 +173,9 @@ func (suite *KeeperTestSuite) TestDistrAssetToCommunityPoolWhenNoDeveloperReward
 
 	feePool = suite.App.DistrKeeper.GetFeePool(suite.Ctx)
 	suite.Equal(
-		mintCoins[0].Amount.ToDec().Mul(params.DistributionProportions.Staking).TruncateInt().Mul(sdk.NewInt(2)),
+		sdk.NewDecFromInt(mintCoins[0].Amount).Mul(params.DistributionProportions.Staking).TruncateInt().Mul(sdk.NewInt(2)),
 		suite.App.BankKeeper.GetBalance(suite.Ctx, feeCollector, "stake").Amount)
 	suite.Equal(
-		mintCoins[0].Amount.ToDec().Mul(proportionToCommunity).Mul(sdk.NewDec(2)),
+		sdk.NewDecFromInt(mintCoins[0].Amount).Mul(proportionToCommunity).Mul(sdk.NewDec(2)),
 		feePool.CommunityPool.AmountOf("stake"))
 }

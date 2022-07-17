@@ -3,8 +3,8 @@ package keeper_test
 import (
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/types"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/types"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -125,7 +125,7 @@ func (suite *KeeperTestSuite) TestGetModuleToDistributeCoins() {
 
 	// check gauge changes after distribution
 	coins = suite.App.IncentivesKeeper.GetModuleToDistributeCoins(suite.Ctx)
-	suite.Require().Equal(coins, gaugeCoins.Add(addCoins...).Add(gaugeCoins2...).Sub(distrCoins))
+	suite.Require().Equal(coins, gaugeCoins.Add(addCoins...).Add(gaugeCoins2...).Sub(distrCoins...))
 }
 
 // TODO: Make this test table driven, or move whatever it tests into

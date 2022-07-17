@@ -3,8 +3,8 @@ package keeper_test
 import (
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/types"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/types"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -29,7 +29,7 @@ func (suite *KeeperTestSuite) TestInvalidDurationGaugeCreationValidation() {
 func (suite *KeeperTestSuite) TestNonExistentDenomGaugeCreation() {
 	suite.SetupTest()
 
-	addrNoSupply := sdk.AccAddress([]byte("Gauge_Creation_Addr_"))
+	addrNoSupply := sdk.AccAddress([]byte("Gauge_Creation_Addr_")[:20])
 	addrs := suite.SetupManyLocks(1, defaultLiquidTokens, defaultLPTokens, defaultLockDuration)
 	distrTo := lockuptypes.QueryCondition{
 		LockQueryType: lockuptypes.ByDuration,

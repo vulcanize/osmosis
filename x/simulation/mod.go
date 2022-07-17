@@ -9,7 +9,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
-	"github.com/cosmos/cosmos-sdk/x/auth/legacy/legacytx"
+	"github.com/cosmos/cosmos-sdk/x/auth/migrations/legacytx"
 	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
@@ -51,7 +51,7 @@ func GenAndDeliverTxWithRandFees(
 	var fees sdk.Coins
 	var err error
 
-	coins, hasNeg := spendable.SafeSub(coinsSpentInMsg)
+	coins, hasNeg := spendable.SafeSub(coinsSpentInMsg...)
 	if hasNeg {
 		return simtypes.NoOpMsg(moduleName, msg.Type(), "message doesn't leave room for fees"), nil, err
 	}
@@ -77,7 +77,7 @@ func GenAndDeliverTx(
 	moduleName string,
 ) (simtypes.OperationMsg, []simtypes.FutureOperation, error) {
 	account := ak.GetAccount(ctx, simAccount.Address)
-	tx, err := helpers.GenTx(
+	tx, err := helpers.GenSignedMockTx(
 		txGen,
 		[]sdk.Msg{msg},
 		fees,
@@ -91,7 +91,7 @@ func GenAndDeliverTx(
 		return simtypes.NoOpMsg(moduleName, msg.Type(), "unable to generate mock tx"), nil, err
 	}
 
-	_, _, err = app.Deliver(txGen.TxEncoder(), tx)
+	_, _, err = app.SimDeliver(txGen.TxEncoder(), tx)
 	if err != nil {
 		return simtypes.NoOpMsg(moduleName, msg.Type(), "unable to deliver tx"), nil, err
 	}

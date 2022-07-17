@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/app/params"
-	dbm "github.com/tendermint/tm-db"
+	"github.com/osmosis-labs/osmosis/v9/app/params"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	"github.com/cosmos/cosmos-sdk/db/memdb"
 	"github.com/cosmos/cosmos-sdk/simapp"
 	"github.com/cosmos/cosmos-sdk/testutil/network"
 
@@ -50,7 +50,7 @@ func DefaultConfig() network.Config {
 func NewAppConstructor(encodingCfg params.EncodingConfig) network.AppConstructor {
 	return func(val network.Validator) servertypes.Application {
 		return NewOsmosisApp(
-			val.Ctx.Logger, dbm.NewMemDB(), nil, true, make(map[int64]bool), val.Ctx.Config.RootDir, 0,
+			val.Ctx.Logger, memdb.NewDB(), nil, make(map[int64]bool), val.Ctx.Config.RootDir, 0,
 			encodingCfg,
 			simapp.EmptyAppOptions{},
 			GetWasmEnabledProposals(),

@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+
+# --------------------------------------------------------
+# Build
+# --------------------------------------------------------
+
+# Start from an image with native dependencies installed
+FROM tendermintdev/docker-tm-db-testing as build
+
+RUN set -eux; apt-get install -y ca-certificates;
+RUN apt-get install -y git
+
+WORKDIR /osmosis
+COPY . /osmosis
+
+# CosmWasm: see https://github.com/CosmWasm/wasmvm/releases
+ADD _lib/v1.0.0/libwasmvm.aarch64.so /lib/libwasmvm.aarch64.so
+ADD _lib/v1.0.0/libwasmvm.x86_64.so /lib/libwasmvm.x86_64.so
+RUN sha256sum /lib/libwasmvm.aarch64.so | grep 30da4ffe159ffdb26b4de69788826ca27a9878cb5ec25478b58824655a156e71
+RUN sha256sum /lib/libwasmvm.x86_64.so | grep 43247d9529593a7c1339669100a6221b0ccd5e7e4176a5fe080cb71d3cebb709
+
+# CosmWasm: copy the right library according to architecture. The final location will be found by the linker flag `-lwasmvm_muslc`
+RUN cp /lib/libwasmvm.$(uname -m).so /lib/libwasmvm.so

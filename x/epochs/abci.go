@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/x/epochs/keeper"
-	"github.com/osmosis-labs/osmosis/v7/x/epochs/types"
+	"github.com/osmosis-labs/osmosis/v9/x/epochs/keeper"
+	"github.com/osmosis-labs/osmosis/v9/x/epochs/types"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -17,11 +17,15 @@ func BeginBlocker(ctx sdk.Context, k keeper.Keeper) {
 	k.IterateEpochInfo(ctx, func(index int64, epochInfo types.EpochInfo) (stop bool) {
 		logger := k.Logger(ctx)
 
-		// Has it not started, and is the block time > initial epoch start time
-		shouldInitialEpochStart := !epochInfo.EpochCountingStarted && !epochInfo.StartTime.After(ctx.BlockTime())
+		// If initial epoch start time > blocktime, return
+		if epochInfo.StartTime.After(ctx.BlockTime()) {
+			return
+		}
+		// if epoch counting hasn't started, signal we need to start.
+		shouldInitialEpochStart := !epochInfo.EpochCountingStarted
 
 		epochEndTime := epochInfo.CurrentEpochStartTime.Add(epochInfo.Duration)
-		shouldEpochStart := (ctx.BlockTime().After(epochEndTime) && !epochInfo.StartTime.After(ctx.BlockTime())) || shouldInitialEpochStart
+		shouldEpochStart := (ctx.BlockTime().After(epochEndTime)) || shouldInitialEpochStart
 
 		if !shouldEpochStart {
 			return false

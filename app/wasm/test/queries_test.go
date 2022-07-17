@@ -9,59 +9,59 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/osmosis-labs/osmosis/v7/app/wasm"
-	wasmbindings "github.com/osmosis-labs/osmosis/v7/app/wasm/bindings"
+	"github.com/osmosis-labs/osmosis/v9/app/wasm"
+	wasmbindings "github.com/osmosis-labs/osmosis/v9/app/wasm/bindings"
 )
 
-// func TestFullDenom(t *testing.T) {
-// 	actor := RandomAccountAddress()
+func TestFullDenom(t *testing.T) {
+	actor := RandomAccountAddress()
 
-// 	specs := map[string]struct {
-// 		addr         string
-// 		subDenom     string
-// 		expFullDenom string
-// 		expErr       bool
-// 	}{
-// 		"valid address": {
-// 			addr:         actor.String(),
-// 			subDenom:     "subDenom1",
-// 			expFullDenom: fmt.Sprintf("cw/%s/subDenom1", actor.String()),
-// 		},
-// 		"empty address": {
-// 			addr:     "",
-// 			subDenom: "subDenom1",
-// 			expErr:   true,
-// 		},
-// 		"invalid address": {
-// 			addr:     "invalid",
-// 			subDenom: "subDenom1",
-// 			expErr:   true,
-// 		},
-// 		"empty sub-denom": {
-// 			addr:     actor.String(),
-// 			subDenom: "",
-// 			expErr:   true,
-// 		},
-// 		"invalid sub-denom": {
-// 			addr:     actor.String(),
-// 			subDenom: "sub_denom_1",
-// 			expErr:   true,
-// 		},
-// 	}
-// 	for name, spec := range specs {
-// 		t.Run(name, func(t *testing.T) {
-// 			// when
-// 			gotFullDenom, gotErr := wasm.GetFullDenom(spec.addr, spec.subDenom)
-// 			// then
-// 			if spec.expErr {
-// 				require.Error(t, gotErr)
-// 				return
-// 			}
-// 			require.NoError(t, gotErr)
-// 			assert.Equal(t, spec.expFullDenom, gotFullDenom, "exp %s but got %s", spec.expFullDenom, gotFullDenom)
-// 		})
-// 	}
-// }
+	specs := map[string]struct {
+		addr         string
+		subdenom     string
+		expFullDenom string
+		expErr       bool
+	}{
+		"valid address": {
+			addr:         actor.String(),
+			subdenom:     "subDenom1",
+			expFullDenom: fmt.Sprintf("factory/%s/subDenom1", actor.String()),
+		},
+		"empty address": {
+			addr:     "",
+			subdenom: "subDenom1",
+			expErr:   true,
+		},
+		"invalid address": {
+			addr:     "invalid",
+			subdenom: "subDenom1",
+			expErr:   true,
+		},
+		"empty sub-denom": {
+			addr:         actor.String(),
+			subdenom:     "",
+			expFullDenom: fmt.Sprintf("factory/%s/", actor.String()),
+		},
+		"invalid sub-denom": {
+			addr:     actor.String(),
+			subdenom: "sub~denom",
+			expErr:   true,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			// when
+			gotFullDenom, gotErr := wasm.GetFullDenom(spec.addr, spec.subdenom)
+			// then
+			if spec.expErr {
+				require.Error(t, gotErr)
+				return
+			}
+			require.NoError(t, gotErr)
+			assert.Equal(t, spec.expFullDenom, gotFullDenom, "exp %s but got %s", spec.expFullDenom, gotFullDenom)
+		})
+	}
+}
 
 func TestPoolState(t *testing.T) {
 	actor := RandomAccountAddress()
@@ -133,8 +133,8 @@ func TestSpotPrice(t *testing.T) {
 	// 20 star to 1 osmo
 	starPool := preparePool(t, ctx, osmosis, actor, poolFunds)
 
-	uosmo := poolFunds[0].Amount.ToDec().MustFloat64()
-	ustar := poolFunds[1].Amount.ToDec().MustFloat64()
+	uosmo := sdk.NewDecFromInt(poolFunds[0].Amount).MustFloat64()
+	ustar := sdk.NewDecFromInt(poolFunds[1].Amount).MustFloat64()
 
 	starPrice := sdk.MustNewDecFromStr(fmt.Sprintf("%f", uosmo/ustar))
 	starFee := sdk.MustNewDecFromStr(fmt.Sprintf("%f", swapFee))
@@ -270,15 +270,15 @@ func TestEstimateSwap(t *testing.T) {
 	starPool := preparePool(t, ctx, osmosis, actor, poolFunds)
 
 	// Estimate swap rate
-	uosmo := poolFunds[0].Amount.ToDec().MustFloat64()
-	ustar := poolFunds[1].Amount.ToDec().MustFloat64()
+	uosmo := sdk.NewDecFromInt(poolFunds[0].Amount).MustFloat64()
+	ustar := sdk.NewDecFromInt(poolFunds[1].Amount).MustFloat64()
 	swapRate := ustar / uosmo
 
 	amountIn := sdk.NewInt(10000)
 	zeroAmount := sdk.ZeroInt()
 	negativeAmount := amountIn.Neg()
 
-	amount := amountIn.ToDec().MustFloat64()
+	amount := sdk.NewDecFromInt(amountIn).MustFloat64()
 	starAmount := sdk.NewInt(int64(amount * swapRate))
 
 	starSwapAmount := wasmbindings.SwapAmount{Out: &starAmount}
@@ -483,7 +483,7 @@ func TestEstimateSwap(t *testing.T) {
 				return
 			}
 			require.NoError(t, gotErr)
-			assert.InEpsilonf(t, (*spec.expCost.Out).ToDec().MustFloat64(), (*gotCost.Out).ToDec().MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotCost.Out.String())
+			assert.InEpsilonf(t, sdk.NewDecFromInt(*spec.expCost.Out).MustFloat64(), sdk.NewDecFromInt(*gotCost.Out).MustFloat64(), epsilon, "exp %s but got %s", spec.expCost.Out.String(), gotCost.Out.String())
 		})
 	}
 }

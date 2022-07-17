@@ -9,14 +9,14 @@ import (
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/osmosis-labs/osmosis/v7/app"
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/types"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/app"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/types"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 )
 
 func Min(x, y int) int {
@@ -71,7 +71,7 @@ func benchmarkDistributionLogic(numAccts, numDenoms, numGauges, numLockups, numD
 	b.StopTimer()
 
 	blockStartTime := time.Now().UTC()
-	app, cleanupFn := app.SetupTestingAppWithLevelDb(false)
+	app, cleanupFn := app.SetupTestingAppWithBadgerDb()
 	defer cleanupFn()
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{Height: 1, ChainID: "osmosis-1", Time: blockStartTime})
 
@@ -85,7 +85,7 @@ func benchmarkDistributionLogic(numAccts, numDenoms, numGauges, numLockups, numD
 		for j := 0; j < numDenoms; j++ {
 			coins = coins.Add(sdk.NewInt64Coin(fmt.Sprintf("token%d", j), r.Int63n(100000000)))
 		}
-		_ = simapp.FundAccount(app.BankKeeper, ctx, addr, coins)
+		_ = testutil.FundAccount(app.BankKeeper, ctx, addr, coins)
 		app.AccountKeeper.SetAccount(ctx, authtypes.NewBaseAccount(addr, nil, 0, 0))
 		addrs = append(addrs, addr)
 	}
@@ -135,7 +135,7 @@ func benchmarkDistributionLogic(numAccts, numDenoms, numGauges, numLockups, numD
 			lockSecs = r.Intn(1 * 60 * 60 * 8)
 		}
 		duration := time.Duration(lockSecs) * time.Second
-		_, err := app.LockupKeeper.LockTokens(ctx, addr, simCoins, duration)
+		_, err := app.LockupKeeper.CreateLock(ctx, addr, simCoins, duration)
 		if err != nil {
 			fmt.Printf("Lock tokens, %v\n", err)
 			b.FailNow()

@@ -66,7 +66,7 @@ ifeq (,$(findstring nostrip,$(OSMOSIS_BUILD_OPTIONS)))
   ldflags += -w -s
 endif
 ifeq ($(LINK_STATICALLY),true)
-	ldflags += -linkmode=external -extldflags "-L/usr/local/lib/ -lwasmvm_muslc -Wl,-z,muldefs -static"
+	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
 endif
 ldflags += $(LDFLAGS)
 ldflags := $(strip $(ldflags))
@@ -113,10 +113,6 @@ build-linux: go.sum
 build-contract-tests-hooks:
 	mkdir -p $(BUILDDIR)
 	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR)/ ./cmd/contract_tests
-
-build-e2e-chain-init:
-	mkdir -p $(BUILDDIR)
-	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR)/ ./tests/e2e/chain_init
 
 go-mod-cache: go.sum
 	@echo "--> Download go modules to local cache"
@@ -239,14 +235,24 @@ test-sim:
 test-e2e:
 	@VERSION=$(VERSION) go test -mod=readonly -timeout=25m -v $(PACKAGES_E2E)
 
+test-e2e-skip-upgrade:
+	@VERSION=$(VERSION) OSMOSIS_E2E_SKIP_UPGRADE=True go test -mod=readonly -timeout=25m -v $(PACKAGES_E2E)
+
 benchmark:
 	@go test -mod=readonly -bench=. $(PACKAGES_UNIT)
 
-docker-build-debug:
-	@docker build -t osmosis:debug --build-arg BASE_IMG_TAG=debug -f Dockerfile .
+build-e2e-script:
+	mkdir -p $(BUILDDIR)
+	go build -mod=readonly $(BUILD_FLAGS) -o $(BUILDDIR)/ ./tests/e2e/initialization/$(E2E_SCRIPT_NAME)
 
-docker-build-e2e-chain-init:
-	@docker build -t osmosis-e2e-chain-init:debug -f tests/e2e/chain_init/chain-init.Dockerfile .
+docker-build-debug:
+	@./scripts/docker-build.sh . osmosis:debug --build-arg BASE_IMG_TAG=debug
+
+docker-build-e2e-init-chain:
+	@docker build -t osmosis-e2e-init-chain:debug --build-arg E2E_SCRIPT_NAME=chain -f tests/e2e/initialization/init.Dockerfile .
+
+docker-build-e2e-init-node:
+	@docker build -t osmosis-e2e-init-node:debug --build-arg E2E_SCRIPT_NAME=node -f tests/e2e/initialization/init.Dockerfile .
 
 ###############################################################################
 ###                                Linting                                  ###
@@ -264,6 +270,30 @@ format:
 ###                                Localnet                                 ###
 ###############################################################################
 
+localnet-keys:
+	. tests/localosmosis/keys.sh
+
+localnet-build:
+	@docker build -t local:osmosis -f tests/localosmosis/Dockerfile .
+
+localnet-build-state-export:
+	@docker build -t local:osmosis-se --build-arg ID=$(ID) -f tests/localosmosis/mainnet_state/Dockerfile-stateExport .
+
+localnet-start:
+	@docker-compose -f tests/localosmosis/docker-compose.yml up
+
+localnet-start-state-export:
+	@docker-compose -f tests/localosmosis/mainnet_state/docker-compose-state-export.yml up
+
+localnet-stop:
+	@docker-compose -f tests/localosmosis/docker-compose.yml down
+
+localnet-remove: localnet-stop
+	PWD=$(shell pwd)
+	@docker run --user root -v ${PWD}/tests/localosmosis/.osmosisd:/root/osmosis ubuntu /bin/sh -c "rm -rf /root/osmosis/*"
+
+localnet-remove-state-export:
+	@docker-compose -f tests/localosmosis/mainnet_state/docker-compose-state-export.yml down
 
 .PHONY: all build-linux install format lint \
 	go-mod-cache draw-deps clean build build-contract-tests-hooks \

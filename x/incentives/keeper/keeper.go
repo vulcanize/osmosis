@@ -4,17 +4,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/types"
 	"github.com/tendermint/tendermint/libs/log"
 
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 type Keeper struct {
 	cdc        codec.Codec
-	storeKey   sdk.StoreKey
+	storeKey   storetypes.StoreKey
 	paramSpace paramtypes.Subspace
 	hooks      types.IncentiveHooks
 	bk         types.BankKeeper
@@ -22,7 +24,7 @@ type Keeper struct {
 	ek         types.EpochKeeper
 }
 
-func NewKeeper(cdc codec.Codec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, bk types.BankKeeper, lk types.LockupKeeper, ek types.EpochKeeper) *Keeper {
+func NewKeeper(cdc codec.Codec, storeKey storetypes.StoreKey, paramSpace paramtypes.Subspace, bk types.BankKeeper, lk types.LockupKeeper, ek types.EpochKeeper) *Keeper {
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}

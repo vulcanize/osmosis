@@ -4,20 +4,22 @@ import (
 	"fmt"
 	"time"
 
-	gammtypes "github.com/osmosis-labs/osmosis/v7/x/gamm/types"
-	incentivestypes "github.com/osmosis-labs/osmosis/v7/x/incentives/types"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
-	"github.com/osmosis-labs/osmosis/v7/x/pool-incentives/types"
 	"github.com/tendermint/tendermint/libs/log"
 
+	gammtypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
+	incentivestypes "github.com/osmosis-labs/osmosis/v9/x/incentives/types"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/x/pool-incentives/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 type Keeper struct {
-	storeKey sdk.StoreKey
+	storeKey storetypes.StoreKey
 	cdc      codec.BinaryCodec
 
 	paramSpace paramtypes.Subspace
@@ -31,7 +33,7 @@ type Keeper struct {
 	feeCollectorName  string // name of the FeeCollector ModuleAccount
 }
 
-func NewKeeper(cdc codec.BinaryCodec, storeKey sdk.StoreKey, paramSpace paramtypes.Subspace, accountKeeper types.AccountKeeper, bankKeeper types.BankKeeper, incentivesKeeper types.IncentivesKeeper, distrKeeper types.DistrKeeper, communityPoolName string, feeCollectorName string) Keeper {
+func NewKeeper(cdc codec.BinaryCodec, storeKey storetypes.StoreKey, paramSpace paramtypes.Subspace, accountKeeper types.AccountKeeper, bankKeeper types.BankKeeper, incentivesKeeper types.IncentivesKeeper, distrKeeper types.DistrKeeper, communityPoolName string, feeCollectorName string) Keeper {
 	// ensure pool-incentives module account is set
 	if addr := accountKeeper.GetModuleAddress(types.ModuleName); addr == nil {
 		panic(fmt.Sprintf("%s module account has not been set", types.ModuleName))
@@ -149,9 +151,4 @@ func (k Keeper) GetLockableDurations(ctx sdk.Context) []time.Duration {
 func (k Keeper) GetAllGauges(ctx sdk.Context) []incentivestypes.Gauge {
 	gauges := k.incentivesKeeper.GetGauges(ctx)
 	return gauges
-}
-
-func (k Keeper) ExportGenesis(ctx sdk.Context) interface{} {
-	fmt.Println("you have hit a very silly placeholder, smartly suggested by the IDE")
-	return nil
 }

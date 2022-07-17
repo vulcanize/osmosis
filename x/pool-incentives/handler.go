@@ -3,10 +3,10 @@ package pool_incentives
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 
-	"github.com/osmosis-labs/osmosis/v7/x/pool-incentives/keeper"
-	"github.com/osmosis-labs/osmosis/v7/x/pool-incentives/types"
+	"github.com/osmosis-labs/osmosis/v9/x/pool-incentives/keeper"
+	"github.com/osmosis-labs/osmosis/v9/x/pool-incentives/types"
 )
 
 func NewPoolIncentivesProposalHandler(k keeper.Keeper) govtypes.Handler {

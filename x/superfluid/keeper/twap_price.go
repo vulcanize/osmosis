@@ -2,8 +2,9 @@ package keeper
 
 import (
 	"github.com/gogo/protobuf/proto"
-	gammtypes "github.com/osmosis-labs/osmosis/v7/x/gamm/types"
-	"github.com/osmosis-labs/osmosis/v7/x/superfluid/types"
+
+	gammtypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
+	"github.com/osmosis-labs/osmosis/v9/x/superfluid/types"
 
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -13,7 +14,7 @@ import (
 // It is intended to eventually use the TWAP of the worth of an LP share
 // once that is exposed from the gamm module.
 func (k Keeper) calculateOsmoBackingPerShare(pool gammtypes.PoolI, osmoInPool sdk.Int) sdk.Dec {
-	twap := osmoInPool.ToDec().Quo(pool.GetTotalShares().ToDec())
+	twap := sdk.NewDecFromInt(osmoInPool).Quo(sdk.NewDecFromInt(pool.GetTotalShares()))
 	return twap
 }
 
@@ -38,7 +39,7 @@ func (k Keeper) GetSuperfluidOSMOTokens(ctx sdk.Context, denom string, amount sd
 		return sdk.ZeroInt()
 	}
 
-	decAmt := multiplier.Mul(amount.ToDec())
+	decAmt := multiplier.Mul(sdk.NewDecFromInt(amount))
 	asset := k.GetSuperfluidAsset(ctx, denom)
 	return k.GetRiskAdjustedOsmoValue(ctx, asset, decAmt.RoundInt())
 }

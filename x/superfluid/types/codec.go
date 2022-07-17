@@ -5,7 +5,7 @@ import (
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
 func RegisterCodec(cdc *codec.LegacyAmino) {
@@ -15,6 +15,7 @@ func RegisterCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgSuperfluidUnbondLock{}, "osmosis/superfluid-unbond-lock", nil)
 	cdc.RegisterConcrete(&SetSuperfluidAssetsProposal{}, "osmosis/set-superfluid-assets-proposal", nil)
 	cdc.RegisterConcrete(&RemoveSuperfluidAssetsProposal{}, "osmosis/del-superfluid-assets-proposal", nil)
+	cdc.RegisterConcrete(&MsgUnPoolWhitelistedPool{}, "osmosis/unpool-whitelisted-pool", nil)
 }
 
 func RegisterInterfaces(registry cdctypes.InterfaceRegistry) {
@@ -24,6 +25,7 @@ func RegisterInterfaces(registry cdctypes.InterfaceRegistry) {
 		&MsgSuperfluidUndelegate{},
 		&MsgLockAndSuperfluidDelegate{},
 		&MsgSuperfluidUnbondLock{},
+		&MsgUnPoolWhitelistedPool{},
 	)
 
 	registry.RegisterImplementations(

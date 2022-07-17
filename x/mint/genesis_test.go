@@ -3,16 +3,17 @@ package mint_test
 import (
 	"testing"
 
-	simapp "github.com/osmosis-labs/osmosis/v7/app"
-	"github.com/osmosis-labs/osmosis/v7/x/mint/types"
 	"github.com/stretchr/testify/require"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+
+	simapp "github.com/osmosis-labs/osmosis/v9/app"
+	"github.com/osmosis-labs/osmosis/v9/x/mint/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func TestMintInitGenesis(t *testing.T) {
-	app := simapp.Setup(false)
+	app := simapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
 	validateGenesis := types.ValidateGenesis(*types.DefaultGenesisState())

@@ -4,19 +4,20 @@ import (
 	"testing"
 	"time"
 
-	osmoapp "github.com/osmosis-labs/osmosis/v7/app"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
-	"github.com/osmosis-labs/osmosis/v7/x/mint/types"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	osmoapp "github.com/osmosis-labs/osmosis/v9/app"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/x/mint/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 )
 
 func TestEndOfEpochMintedCoinDistribution(t *testing.T) {
-	app := osmoapp.Setup(false)
+	app := osmoapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
 	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
@@ -109,7 +110,7 @@ func TestEndOfEpochMintedCoinDistribution(t *testing.T) {
 }
 
 func TestMintedCoinDistributionWhenDevRewardsAddressEmpty(t *testing.T) {
-	app := osmoapp.Setup(false)
+	app := osmoapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
 	header := tmproto.Header{Height: app.LastBlockHeight() + 1}
@@ -180,7 +181,7 @@ func TestMintedCoinDistributionWhenDevRewardsAddressEmpty(t *testing.T) {
 }
 
 func TestEndOfEpochNoDistributionWhenIsNotYetStartTime(t *testing.T) {
-	app := osmoapp.Setup(false)
+	app := osmoapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 
 	mintParams := app.MintKeeper.GetParams(ctx)
@@ -222,7 +223,7 @@ func TestEndOfEpochNoDistributionWhenIsNotYetStartTime(t *testing.T) {
 func setupGaugeForLPIncentives(t *testing.T, app *osmoapp.OsmosisApp, ctx sdk.Context) {
 	addr := sdk.AccAddress([]byte("addr1---------------"))
 	coins := sdk.Coins{sdk.NewInt64Coin("stake", 10000)}
-	err := simapp.FundAccount(app.BankKeeper, ctx, addr, coins)
+	err := testutil.FundAccount(app.BankKeeper, ctx, addr, coins)
 	require.NoError(t, err)
 	distrTo := lockuptypes.QueryCondition{
 		LockQueryType: lockuptypes.ByDuration,
@@ -232,7 +233,7 @@ func setupGaugeForLPIncentives(t *testing.T, app *osmoapp.OsmosisApp, ctx sdk.Co
 
 	// mints coins so supply exists on chain
 	mintLPtokens := sdk.Coins{sdk.NewInt64Coin(distrTo.Denom, 200)}
-	err = simapp.FundAccount(app.BankKeeper, ctx, addr, mintLPtokens)
+	err = testutil.FundAccount(app.BankKeeper, ctx, addr, mintLPtokens)
 	require.NoError(t, err)
 
 	_, err = app.IncentivesKeeper.CreateGauge(ctx, true, addr, coins, distrTo, time.Now(), 1)

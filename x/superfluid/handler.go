@@ -3,8 +3,8 @@ package superfluid
 import (
 	"fmt"
 
-	"github.com/osmosis-labs/osmosis/v7/x/superfluid/keeper"
-	"github.com/osmosis-labs/osmosis/v7/x/superfluid/types"
+	"github.com/osmosis-labs/osmosis/v9/x/superfluid/keeper"
+	"github.com/osmosis-labs/osmosis/v9/x/superfluid/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -28,6 +28,9 @@ func NewHandler(k *keeper.Keeper) sdk.Handler {
 			return sdk.WrapServiceResult(ctx, res, err)
 		case *types.MsgLockAndSuperfluidDelegate:
 			res, err := msgServer.LockAndSuperfluidDelegate(sdk.WrapSDKContext(ctx), msg)
+			return sdk.WrapServiceResult(ctx, res, err)
+		case *types.MsgUnPoolWhitelistedPool:
+			res, err := msgServer.UnPoolWhitelistedPool(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
 		// case *types.MsgSuperfluidRedelegate:
 		// 	res, err := msgServer.SuperfluidRedelegate(sdk.WrapSDKContext(ctx), msg)

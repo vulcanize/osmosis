@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/app"
-	"github.com/osmosis-labs/osmosis/v7/x/gamm/pool-models/balancer"
-	balancertypes "github.com/osmosis-labs/osmosis/v7/x/gamm/pool-models/balancer"
-	gammtypes "github.com/osmosis-labs/osmosis/v7/x/gamm/types"
+	"cosmossdk.io/math"
+	"github.com/osmosis-labs/osmosis/v9/app"
+	"github.com/osmosis-labs/osmosis/v9/x/gamm/pool-models/balancer"
+	balancertypes "github.com/osmosis-labs/osmosis/v9/x/gamm/pool-models/balancer"
+	gammtypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
@@ -18,7 +19,7 @@ func genPoolAssets(r *rand.Rand) []balancertypes.PoolAsset {
 	denoms := []string{"IBC/0123456789ABCDEF012346789ABCDEF", "IBC/denom56789ABCDEF012346789ABCDEF"}
 	assets := []balancertypes.PoolAsset{}
 	for _, denom := range denoms {
-		amt, _ := simtypes.RandPositiveInt(r, sdk.NewIntWithDecimal(1, 40))
+		amt, _ := simtypes.RandPositiveInt(r, math.NewIntWithDecimal(1, 40))
 		reserveAmt := sdk.NewCoin(denom, amt)
 		weight := sdk.NewInt(r.Int63n(9) + 1)
 		assets = append(assets, balancertypes.PoolAsset{Token: reserveAmt, Weight: weight})
@@ -56,7 +57,7 @@ func setupPools(maxNumPoolsToGen int) []gammtypes.PoolI {
 }
 
 func BenchmarkGammPoolSerialization(b *testing.B) {
-	app := app.Setup(false)
+	app := app.Setup(b)
 	maxNumPoolsToGen := 5000
 	pools := setupPools(maxNumPoolsToGen)
 
@@ -68,7 +69,7 @@ func BenchmarkGammPoolSerialization(b *testing.B) {
 }
 
 func BenchmarkGammPoolDeserialization(b *testing.B) {
-	app := app.Setup(false)
+	app := app.Setup(b)
 	maxNumPoolsToGen := 5000
 	pools := setupPools(maxNumPoolsToGen)
 	marshals := make([][]byte, 0, maxNumPoolsToGen)

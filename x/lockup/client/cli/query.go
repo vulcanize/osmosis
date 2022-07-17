@@ -16,11 +16,11 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/osmosis-labs/osmosis/v7/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 )
 
 // GetQueryCmd returns the cli query commands for this module.
-func GetQueryCmd(queryRoute string) *cobra.Command {
+func GetQueryCmd() *cobra.Command {
 	// Group lockup queries under a subcommand
 	cmd := &cobra.Command{
 		Use:                        types.ModuleName,

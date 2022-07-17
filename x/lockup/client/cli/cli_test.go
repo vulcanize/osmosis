@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	tmcli "github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/osmosis-labs/osmosis/v7/app"
-	"github.com/osmosis-labs/osmosis/v7/osmoutils"
-	"github.com/osmosis-labs/osmosis/v7/x/lockup/client/cli"
-	lockuptestutil "github.com/osmosis-labs/osmosis/v7/x/lockup/client/testutil"
-	"github.com/osmosis-labs/osmosis/v7/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/app"
+	"github.com/osmosis-labs/osmosis/v9/osmoutils"
+	"github.com/osmosis-labs/osmosis/v9/x/lockup/client/cli"
+	lockuptestutil "github.com/osmosis-labs/osmosis/v9/x/lockup/client/testutil"
+	"github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/crypto/hd"
@@ -36,9 +36,11 @@ func (s *IntegrationTestSuite) SetupSuite() {
 	s.T().Log("setting up integration test suite")
 
 	s.cfg = app.DefaultConfig()
-	s.network = network.New(s.T(), s.cfg)
+	var err error
+	s.network, err = network.New(s.T(), s.T().TempDir(), s.cfg)
+	s.Require().NoError(err)
 
-	_, err := s.network.WaitForHeight(1)
+	_, err = s.network.WaitForHeight(1)
 	s.Require().NoError(err)
 
 	dayLockAmt, err := sdk.ParseCoinNormalized(fmt.Sprintf("200%s", s.network.Config.BondDenom))
@@ -84,7 +86,9 @@ func (s *IntegrationTestSuite) TestNewLockTokensCmd() {
 		keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,
@@ -146,7 +150,9 @@ func (s *IntegrationTestSuite) TestBeginUnlockingCmd() {
 		keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		val.ClientCtx,
@@ -214,7 +220,9 @@ func (s *IntegrationTestSuite) TestNewBeginUnlockPeriodLockCmd() {
 		keyring.English, sdk.FullFundraiserPath, keyring.DefaultBIP39Passphrase, hd.Secp256k1)
 	s.Require().NoError(err)
 
-	newAddr := sdk.AccAddress(info.GetPubKey().Address())
+	pk, err := info.GetPubKey()
+	s.Require().NoError(err)
+	newAddr := sdk.AccAddress(pk.Address())
 
 	_, err = banktestutil.MsgSendExec(
 		clientCtx,

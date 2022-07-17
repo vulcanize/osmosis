@@ -7,30 +7,30 @@ import (
 
 	"github.com/spf13/cobra"
 
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 	tmtypes "github.com/tendermint/tendermint/types"
 
+	"cosmossdk.io/math"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/server"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
-
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
 	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govv1b1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	appParams "github.com/osmosis-labs/osmosis/v7/app/params"
+	appParams "github.com/osmosis-labs/osmosis/v9/app/params"
 
-	epochstypes "github.com/osmosis-labs/osmosis/v7/x/epochs/types"
-	incentivestypes "github.com/osmosis-labs/osmosis/v7/x/incentives/types"
-	minttypes "github.com/osmosis-labs/osmosis/v7/x/mint/types"
-	poolincentivestypes "github.com/osmosis-labs/osmosis/v7/x/pool-incentives/types"
+	epochstypes "github.com/osmosis-labs/osmosis/v9/x/epochs/types"
+	incentivestypes "github.com/osmosis-labs/osmosis/v9/x/incentives/types"
+	minttypes "github.com/osmosis-labs/osmosis/v9/x/mint/types"
+	poolincentivestypes "github.com/osmosis-labs/osmosis/v9/x/pool-incentives/types"
 )
 
 //nolint:ineffassign
@@ -107,6 +107,7 @@ func PrepareGenesis(clientCtx client.Context, appState map[string]json.RawMessag
 	cdc := depCdc
 
 	// chain params genesis
+	genDoc.ChainID = chainID
 	genDoc.GenesisTime = genesisParams.GenesisTime
 
 	genDoc.ConsensusParams = genesisParams.ConsensusParams
@@ -142,7 +143,7 @@ func PrepareGenesis(clientCtx client.Context, appState map[string]json.RawMessag
 	appState[distributiontypes.ModuleName] = distributionGenStateBz
 
 	// gov module genesis
-	govGenState := govtypes.DefaultGenesisState()
+	govGenState := govv1b1.DefaultGenesisState()
 	govGenState.DepositParams = genesisParams.GovParams.DepositParams
 	govGenState.TallyParams = genesisParams.GovParams.TallyParams
 	govGenState.VotingParams = genesisParams.GovParams.VotingParams
@@ -209,7 +210,7 @@ type GenesisParams struct {
 
 	StrategicReserveAccounts []banktypes.Balance
 
-	ConsensusParams *tmproto.ConsensusParams
+	ConsensusParams *tmtypes.ConsensusParams
 
 	GenesisTime         time.Time
 	NativeCoinMetadatas []banktypes.Metadata
@@ -217,7 +218,7 @@ type GenesisParams struct {
 	StakingParams      stakingtypes.Params
 	MintParams         minttypes.Params
 	DistributionParams distributiontypes.Params
-	GovParams          govtypes.Params
+	GovParams          govv1b1.Params
 
 	CrisisConstantFee sdk.Coin
 
@@ -232,7 +233,7 @@ type GenesisParams struct {
 func MainnetGenesisParams() GenesisParams {
 	genParams := GenesisParams{}
 
-	genParams.AirdropSupply = sdk.NewIntWithDecimal(5, 13)                // 5*10^13 uosmo, 5*10^7 (50 million) osmo
+	genParams.AirdropSupply = math.NewIntWithDecimal(5, 13)               // 5*10^13 uosmo, 5*10^7 (50 million) osmo
 	genParams.GenesisTime = time.Date(2021, 6, 18, 17, 0, 0, 0, time.UTC) // Jun 18, 2021 - 17:00 UTC
 
 	genParams.NativeCoinMetadatas = []banktypes.Metadata{
@@ -450,7 +451,7 @@ func MainnetGenesisParams() GenesisParams {
 	genParams.DistributionParams.CommunityTax = sdk.MustNewDecFromStr("0")
 	genParams.DistributionParams.WithdrawAddrEnabled = true
 
-	genParams.GovParams = govtypes.DefaultParams()
+	genParams.GovParams = govv1b1.DefaultParams()
 	genParams.GovParams.DepositParams.MaxDepositPeriod = time.Hour * 24 * 14 // 2 weeks
 	genParams.GovParams.DepositParams.MinDeposit = sdk.NewCoins(sdk.NewCoin(
 		genParams.NativeCoinMetadatas[0].Base,

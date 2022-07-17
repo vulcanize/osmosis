@@ -5,8 +5,9 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/osmosis-labs/osmosis/v7/app/apptesting"
-	"github.com/osmosis-labs/osmosis/v7/x/gamm/types"
+	"github.com/osmosis-labs/osmosis/v9/app/apptesting"
+	v10 "github.com/osmosis-labs/osmosis/v9/app/upgrades/v10"
+	"github.com/osmosis-labs/osmosis/v9/x/gamm/types"
 )
 
 type KeeperTestSuite struct {
@@ -22,4 +23,6 @@ func TestKeeperTestSuite(t *testing.T) {
 func (suite *KeeperTestSuite) SetupTest() {
 	suite.Setup()
 	suite.queryClient = types.NewQueryClient(suite.QueryHelper)
+	// be post-bug
+	suite.Ctx = suite.Ctx.WithBlockHeight(v10.ForkHeight)
 }

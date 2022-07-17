@@ -7,14 +7,15 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/osmosis-labs/osmosis/v7/x/txfees/types"
+	"github.com/osmosis-labs/osmosis/v9/x/txfees/types"
 )
 
 type Keeper struct {
 	cdc      codec.Codec
-	storeKey sdk.StoreKey
+	storeKey storetypes.StoreKey
 
 	accountKeeper             types.AccountKeeper
 	bankKeeper                types.BankKeeper
@@ -30,7 +31,7 @@ func NewKeeper(
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
 	epochKeeper types.EpochKeeper,
-	storeKey sdk.StoreKey,
+	storeKey storetypes.StoreKey,
 	gammKeeper types.GammKeeper,
 	spotPriceCalculator types.SpotPriceCalculator,
 	feeCollectorName string,

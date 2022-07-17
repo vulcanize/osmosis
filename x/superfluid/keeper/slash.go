@@ -3,8 +3,8 @@ package keeper
 import (
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/osmoutils"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
+	"github.com/osmosis-labs/osmosis/v9/osmoutils"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -59,7 +59,7 @@ func (k Keeper) SlashLockupsForValidatorSlash(ctx sdk.Context, valAddr sdk.ValAd
 func (k Keeper) slashSynthLock(ctx sdk.Context, synthLock *lockuptypes.SyntheticLock, slashFactor sdk.Dec) {
 	// Only single token lock is allowed here
 	lock, _ := k.lk.GetLockByID(ctx, synthLock.UnderlyingLockId)
-	slashAmt := lock.Coins[0].Amount.ToDec().Mul(slashFactor).TruncateInt()
+	slashAmt := sdk.NewDecFromInt(lock.Coins[0].Amount).Mul(slashFactor).TruncateInt()
 	slashCoins := sdk.NewCoins(sdk.NewCoin(lock.Coins[0].Denom, slashAmt))
 	_ = osmoutils.ApplyFuncIfNoError(ctx, func(cacheCtx sdk.Context) error {
 		// These tokens get moved to the community pool.

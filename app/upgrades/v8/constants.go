@@ -1,8 +1,21 @@
 package v8
 
-// UpgradeName defines the on-chain upgrade name for the Osmosis v7 upgrade.
-const UpgradeName = "v8"
+import (
+	"github.com/osmosis-labs/osmosis/v9/app/upgrades"
+	v8constants "github.com/osmosis-labs/osmosis/v9/app/upgrades/v8/constants"
+)
 
-// The historic name of the claims module, which is removed in this release.
-// Cross-check against https://github.com/osmosis-labs/osmosis/blob/v7.2.0/x/claim/types/keys.go#L5
-const ClaimsModuleName = "claim"
+const (
+	// UpgradeName defines the on-chain upgrade name for the Osmosis v8 upgrade.
+	UpgradeName = v8constants.UpgradeName
+
+	// UpgradeHeight defines the block height at which the Osmosis v8 upgrade is
+	// triggered.
+	UpgradeHeight = v8constants.UpgradeHeight
+)
+
+var Fork = upgrades.Fork{
+	UpgradeName:    UpgradeName,
+	UpgradeHeight:  UpgradeHeight,
+	BeginForkLogic: RunForkLogic,
+}

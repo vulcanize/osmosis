@@ -4,12 +4,13 @@ import (
 	"testing"
 	"time"
 
-	simapp "github.com/osmosis-labs/osmosis/v7/app"
-	pool_incentives "github.com/osmosis-labs/osmosis/v7/x/pool-incentives"
-	"github.com/osmosis-labs/osmosis/v7/x/pool-incentives/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+
+	simapp "github.com/osmosis-labs/osmosis/v9/app"
+	pool_incentives "github.com/osmosis-labs/osmosis/v9/x/pool-incentives"
+	"github.com/osmosis-labs/osmosis/v9/x/pool-incentives/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -38,7 +39,7 @@ var (
 )
 
 func TestMarshalUnmarshalGenesis(t *testing.T) {
-	app := simapp.Setup(false)
+	app := simapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 	ctx = ctx.WithBlockTime(now.Add(time.Second))
 
@@ -52,7 +53,7 @@ func TestMarshalUnmarshalGenesis(t *testing.T) {
 
 	genesisExported := am.ExportGenesis(ctx, appCodec)
 	assert.NotPanics(t, func() {
-		app := simapp.Setup(false)
+		app := simapp.Setup(t)
 		ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 		ctx = ctx.WithBlockTime(now.Add(time.Second))
 		am := pool_incentives.NewAppModule(appCodec, *app.PoolIncentivesKeeper)
@@ -61,7 +62,7 @@ func TestMarshalUnmarshalGenesis(t *testing.T) {
 }
 
 func TestInitGenesis(t *testing.T) {
-	app := simapp.Setup(false)
+	app := simapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 	ctx = ctx.WithBlockTime(now.Add(time.Second))
 	genesis := testGenesis
@@ -78,7 +79,7 @@ func TestInitGenesis(t *testing.T) {
 }
 
 func TestExportGenesis(t *testing.T) {
-	app := simapp.Setup(false)
+	app := simapp.Setup(t)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{})
 	ctx = ctx.WithBlockTime(now.Add(time.Second))
 	genesis := testGenesis

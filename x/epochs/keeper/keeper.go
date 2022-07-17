@@ -3,22 +3,24 @@ package keeper
 import (
 	"fmt"
 
-	"github.com/osmosis-labs/osmosis/v7/x/epochs/types"
 	"github.com/tendermint/tendermint/libs/log"
 
+	"github.com/osmosis-labs/osmosis/v9/x/epochs/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
+	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 type (
 	Keeper struct {
 		cdc      codec.Codec
-		storeKey sdk.StoreKey
+		storeKey storetypes.StoreKey
 		hooks    types.EpochHooks
 	}
 )
 
-func NewKeeper(cdc codec.Codec, storeKey sdk.StoreKey) *Keeper {
+func NewKeeper(cdc codec.Codec, storeKey storetypes.StoreKey) *Keeper {
 	return &Keeper{
 		cdc:      cdc,
 		storeKey: storeKey,

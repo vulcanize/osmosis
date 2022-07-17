@@ -159,6 +159,8 @@
     - [MsgBeginUnlockingAll](#osmosis.lockup.MsgBeginUnlockingAll)
     - [MsgBeginUnlockingAllResponse](#osmosis.lockup.MsgBeginUnlockingAllResponse)
     - [MsgBeginUnlockingResponse](#osmosis.lockup.MsgBeginUnlockingResponse)
+    - [MsgExtendLockup](#osmosis.lockup.MsgExtendLockup)
+    - [MsgExtendLockupResponse](#osmosis.lockup.MsgExtendLockupResponse)
     - [MsgLockTokens](#osmosis.lockup.MsgLockTokens)
     - [MsgLockTokensResponse](#osmosis.lockup.MsgLockTokensResponse)
   
@@ -223,6 +225,7 @@
     - [SuperfluidAsset](#osmosis.superfluid.SuperfluidAsset)
     - [SuperfluidDelegationRecord](#osmosis.superfluid.SuperfluidDelegationRecord)
     - [SuperfluidIntermediaryAccount](#osmosis.superfluid.SuperfluidIntermediaryAccount)
+    - [UnpoolWhitelistedPools](#osmosis.superfluid.UnpoolWhitelistedPools)
   
     - [SuperfluidAssetType](#osmosis.superfluid.SuperfluidAssetType)
   
@@ -274,11 +277,16 @@
     - [MsgSuperfluidUnbondLockResponse](#osmosis.superfluid.MsgSuperfluidUnbondLockResponse)
     - [MsgSuperfluidUndelegate](#osmosis.superfluid.MsgSuperfluidUndelegate)
     - [MsgSuperfluidUndelegateResponse](#osmosis.superfluid.MsgSuperfluidUndelegateResponse)
+    - [MsgUnPoolWhitelistedPool](#osmosis.superfluid.MsgUnPoolWhitelistedPool)
+    - [MsgUnPoolWhitelistedPoolResponse](#osmosis.superfluid.MsgUnPoolWhitelistedPoolResponse)
   
     - [Msg](#osmosis.superfluid.Msg)
   
 - [osmosis/tokenfactory/v1beta1/authorityMetadata.proto](#osmosis/tokenfactory/v1beta1/authorityMetadata.proto)
     - [DenomAuthorityMetadata](#osmosis.tokenfactory.v1beta1.DenomAuthorityMetadata)
+  
+- [osmosis/tokenfactory/v1beta1/params.proto](#osmosis/tokenfactory/v1beta1/params.proto)
+    - [Params](#osmosis.tokenfactory.v1beta1.Params)
   
 - [osmosis/tokenfactory/v1beta1/genesis.proto](#osmosis/tokenfactory/v1beta1/genesis.proto)
     - [GenesisDenom](#osmosis.tokenfactory.v1beta1.GenesisDenom)
@@ -289,6 +297,8 @@
     - [QueryDenomAuthorityMetadataResponse](#osmosis.tokenfactory.v1beta1.QueryDenomAuthorityMetadataResponse)
     - [QueryDenomsFromCreatorRequest](#osmosis.tokenfactory.v1beta1.QueryDenomsFromCreatorRequest)
     - [QueryDenomsFromCreatorResponse](#osmosis.tokenfactory.v1beta1.QueryDenomsFromCreatorResponse)
+    - [QueryParamsRequest](#osmosis.tokenfactory.v1beta1.QueryParamsRequest)
+    - [QueryParamsResponse](#osmosis.tokenfactory.v1beta1.QueryParamsResponse)
   
     - [Query](#osmosis.tokenfactory.v1beta1.Query)
   
@@ -339,18 +349,21 @@
 <a name="osmosis.epochs.v1beta1.EpochInfo"></a>
 
 ### EpochInfo
-
+EpochInfo is a struct that describes the data going into
+a timer defined by the x/epochs module.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `identifier` | [string](#string) |  |  |
-| `start_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
-| `duration` | [google.protobuf.Duration](#google.protobuf.Duration) |  |  |
-| `current_epoch` | [int64](#int64) |  |  |
-| `current_epoch_start_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
-| `epoch_counting_started` | [bool](#bool) |  |  |
-| `current_epoch_start_height` | [int64](#int64) |  |  |
+| `identifier` | [string](#string) |  | identifier is a unique reference to this particular timer. |
+| `start_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | start_time is the time at which the timer first ever ticks. If start_time is in the future, the epoch will not begin until the start time. |
+| `duration` | [google.protobuf.Duration](#google.protobuf.Duration) |  | duration is the time in between epoch ticks. In order for intended behavior to be met, duration should be greater than the chains expected block time. Duration must be non-zero. |
+| `current_epoch` | [int64](#int64) |  | current_epoch is the current epoch number, or in other words, how many times has the timer 'ticked'. The first tick (current_epoch=1) is defined as the first block whose blocktime is greater than the EpochInfo start_time. |
+| `current_epoch_start_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | current_epoch_start_time describes the start time of the current timer interval. The interval is (current_epoch_start_time, current_epoch_start_time + duration] When the timer ticks, this is set to current_epoch_start_time = last_epoch_start_time + duration only one timer tick for a given identifier can occur per block.
+
+NOTE! The current_epoch_start_time may diverge significantly from the wall-clock time the epoch began at. Wall-clock time of epoch start may be >> current_epoch_start_time. Suppose current_epoch_start_time = 10, duration = 5. Suppose the chain goes offline at t=14, and comes back online at t=30, and produces blocks at every successive time. (t=31, 32, etc.) * The t=30 block will start the epoch for (10, 15] * The t=31 block will start the epoch for (15, 20] * The t=32 block will start the epoch for (20, 25] * The t=33 block will start the epoch for (25, 30] * The t=34 block will start the epoch for (30, 35] * The **t=36** block will start the epoch for (35, 40] |
+| `epoch_counting_started` | [bool](#bool) |  | epoch_counting_started is a boolean, that indicates whether this epoch timer has began yet. |
+| `current_epoch_start_height` | [int64](#int64) |  | current_epoch_start_height is the block height at which the current epoch started. (The block height at which the timer last ticked) |
 
 
 
@@ -2423,6 +2436,39 @@ Query defines the gRPC querier service.
 
 
 
+<a name="osmosis.lockup.MsgExtendLockup"></a>
+
+### MsgExtendLockup
+MsgExtendLockup extends the existing lockup's duration.
+The new duration is longer than the original.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `owner` | [string](#string) |  |  |
+| `ID` | [uint64](#uint64) |  |  |
+| `duration` | [google.protobuf.Duration](#google.protobuf.Duration) |  | duration to be set. fails if lower than the current duration, or is unlocking |
+
+
+
+
+
+
+<a name="osmosis.lockup.MsgExtendLockupResponse"></a>
+
+### MsgExtendLockupResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `success` | [bool](#bool) |  |  |
+
+
+
+
+
+
 <a name="osmosis.lockup.MsgLockTokens"></a>
 
 ### MsgLockTokens
@@ -2471,6 +2517,7 @@ Msg defines the Msg service.
 | `LockTokens` | [MsgLockTokens](#osmosis.lockup.MsgLockTokens) | [MsgLockTokensResponse](#osmosis.lockup.MsgLockTokensResponse) | LockTokens lock tokens | |
 | `BeginUnlockingAll` | [MsgBeginUnlockingAll](#osmosis.lockup.MsgBeginUnlockingAll) | [MsgBeginUnlockingAllResponse](#osmosis.lockup.MsgBeginUnlockingAllResponse) | BeginUnlockingAll begin unlocking all tokens | |
 | `BeginUnlocking` | [MsgBeginUnlocking](#osmosis.lockup.MsgBeginUnlocking) | [MsgBeginUnlockingResponse](#osmosis.lockup.MsgBeginUnlockingResponse) | MsgBeginUnlocking begins unlocking tokens by lock ID | |
+| `ExtendLockup` | [MsgExtendLockup](#osmosis.lockup.MsgExtendLockup) | [MsgExtendLockupResponse](#osmosis.lockup.MsgExtendLockupResponse) | MsgEditLockup edits the existing lockups by lock ID | |
 
  <!-- end services -->
 
@@ -3203,6 +3250,7 @@ and OSMO tokens for superfluid staking
 | `delegator_address` | [string](#string) |  |  |
 | `validator_address` | [string](#string) |  |  |
 | `delegation_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+| `equivalent_staked_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
 
 
 
@@ -3221,6 +3269,21 @@ and OSMO tokens for superfluid staking
 | `denom` | [string](#string) |  |  |
 | `val_addr` | [string](#string) |  |  |
 | `gauge_id` | [uint64](#uint64) |  | perpetual gauge for rewards distribution |
+
+
+
+
+
+
+<a name="osmosis.superfluid.UnpoolWhitelistedPools"></a>
+
+### UnpoolWhitelistedPools
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `ids` | [uint64](#uint64) | repeated |  |
 
 
 
@@ -3632,6 +3695,7 @@ assets
 | ----- | ---- | ----- | ----------- |
 | `superfluid_delegation_records` | [SuperfluidDelegationRecord](#osmosis.superfluid.SuperfluidDelegationRecord) | repeated |  |
 | `total_delegated_coins` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
+| `total_equivalent_staked_amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
 
 
 
@@ -3894,6 +3958,44 @@ specified validator addr.
 
 
 
+
+<a name="osmosis.superfluid.MsgUnPoolWhitelistedPool"></a>
+
+### MsgUnPoolWhitelistedPool
+MsgUnPoolWhitelistedPool Unpools every lock the sender has, that is
+associated with pool pool_id. If pool_id is not approved for unpooling by
+governance, this is a no-op. Unpooling takes the locked gamm shares, and runs
+"ExitPool" on it, to get the constituent tokens. e.g. z gamm/pool/1 tokens
+ExitPools into constituent tokens x uatom, y uosmo. Then it creates a new
+lock for every constituent token, with the duration associated with the lock.
+If the lock was unbonding, the new lockup durations should be the time left
+until unbond completion.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `sender` | [string](#string) |  |  |
+| `pool_id` | [uint64](#uint64) |  |  |
+
+
+
+
+
+
+<a name="osmosis.superfluid.MsgUnPoolWhitelistedPoolResponse"></a>
+
+### MsgUnPoolWhitelistedPoolResponse
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `exitedLockIds` | [uint64](#uint64) | repeated |  |
+
+
+
+
+
  <!-- end messages -->
 
  <!-- end enums -->
@@ -3914,6 +4016,7 @@ Msg defines the Msg service.
 Execute superfluid redelegation for a lockup rpc SuperfluidRedelegate(MsgSuperfluidRedelegate) returns (MsgSuperfluidRedelegateResponse); | |
 | `SuperfluidUnbondLock` | [MsgSuperfluidUnbondLock](#osmosis.superfluid.MsgSuperfluidUnbondLock) | [MsgSuperfluidUnbondLockResponse](#osmosis.superfluid.MsgSuperfluidUnbondLockResponse) | For a given lock that is being superfluidly undelegated, also unbond the underlying lock. | |
 | `LockAndSuperfluidDelegate` | [MsgLockAndSuperfluidDelegate](#osmosis.superfluid.MsgLockAndSuperfluidDelegate) | [MsgLockAndSuperfluidDelegateResponse](#osmosis.superfluid.MsgLockAndSuperfluidDelegateResponse) | Execute lockup lock and superfluid delegation in a single msg | |
+| `UnPoolWhitelistedPool` | [MsgUnPoolWhitelistedPool](#osmosis.superfluid.MsgUnPoolWhitelistedPool) | [MsgUnPoolWhitelistedPoolResponse](#osmosis.superfluid.MsgUnPoolWhitelistedPoolResponse) |  | |
 
  <!-- end services -->
 
@@ -3937,6 +4040,37 @@ permission, but is planned to be extended to the future.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `Admin` | [string](#string) |  | Can be empty for no admin, or a valid osmosis address |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="osmosis/tokenfactory/v1beta1/params.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## osmosis/tokenfactory/v1beta1/params.proto
+
+
+
+<a name="osmosis.tokenfactory.v1beta1.Params"></a>
+
+### Params
+Params holds parameters for the tokenfactory module
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `denom_creation_fee` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) | repeated |  |
 
 
 
@@ -3983,6 +4117,7 @@ GenesisState defines the tokenfactory module's genesis state.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
+| `params` | [Params](#osmosis.tokenfactory.v1beta1.Params) |  | params defines the paramaters of the module. |
 | `factory_denoms` | [GenesisDenom](#osmosis.tokenfactory.v1beta1.GenesisDenom) | repeated |  |
 
 
@@ -4065,6 +4200,31 @@ GenesisState defines the tokenfactory module's genesis state.
 
 
 
+
+<a name="osmosis.tokenfactory.v1beta1.QueryParamsRequest"></a>
+
+### QueryParamsRequest
+QueryParamsRequest is the request type for the Query/Params RPC method.
+
+
+
+
+
+
+<a name="osmosis.tokenfactory.v1beta1.QueryParamsResponse"></a>
+
+### QueryParamsResponse
+QueryParamsResponse is the response type for the Query/Params RPC method.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `params` | [Params](#osmosis.tokenfactory.v1beta1.Params) |  | params defines the parameters of the module. |
+
+
+
+
+
  <!-- end messages -->
 
  <!-- end enums -->
@@ -4079,6 +4239,7 @@ Query defines the gRPC querier service.
 
 | Method Name | Request Type | Response Type | Description | HTTP Verb | Endpoint |
 | ----------- | ------------ | ------------- | ------------| ------- | -------- |
+| `Params` | [QueryParamsRequest](#osmosis.tokenfactory.v1beta1.QueryParamsRequest) | [QueryParamsResponse](#osmosis.tokenfactory.v1beta1.QueryParamsResponse) | Params returns the total set of minting parameters. | GET|/osmosis/tokenfactory/v1beta1/params|
 | `DenomAuthorityMetadata` | [QueryDenomAuthorityMetadataRequest](#osmosis.tokenfactory.v1beta1.QueryDenomAuthorityMetadataRequest) | [QueryDenomAuthorityMetadataResponse](#osmosis.tokenfactory.v1beta1.QueryDenomAuthorityMetadataResponse) |  | GET|/osmosis/tokenfactory/v1beta1/denoms/{denom}/authority_metadata|
 | `DenomsFromCreator` | [QueryDenomsFromCreatorRequest](#osmosis.tokenfactory.v1beta1.QueryDenomsFromCreatorRequest) | [QueryDenomsFromCreatorResponse](#osmosis.tokenfactory.v1beta1.QueryDenomsFromCreatorResponse) |  | GET|/osmosis/tokenfactory/v1beta1/denoms_from_creator/{creator}|
 
@@ -4097,15 +4258,13 @@ Query defines the gRPC querier service.
 
 ### MsgBurn
 MsgBurn is the sdk.Msg type for allowing an admin account to burn
-a token.  For now, we require sender == burnFromAddress
-but this restriction will be removed in the future.
+a token.  For now, we only support burning from the sender account.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `sender` | [string](#string) |  |  |
 | `amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
-| `burnFromAddress` | [string](#string) |  |  |
 
 
 
@@ -4154,14 +4313,18 @@ adminship of a denom to a new account
 
 ### MsgCreateDenom
 MsgCreateDenom is the sdk.Msg type for allowing an account to create
-a new denom.  It requires a sender address and a unique nonce
-(to allow accounts to create multiple denoms)
+a new denom. It requires a sender address and a subdenomination.
+The (sender_address, sub_denomination) pair must be unique and cannot be
+re-used. The resulting denom created is `factory/{creator
+address}/{subdenom}`. The resultant denom's admin is originally set to be the
+creator, but this can be changed later. The token denom does not indicate the
+current admin.
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `sender` | [string](#string) |  |  |
-| `nonce` | [string](#string) |  |  |
+| `subdenom` | [string](#string) |  | subdenom can be up to 44 "alphanumeric" characters long. |
 
 
 
@@ -4188,15 +4351,13 @@ It returns the full string of the newly created denom
 
 ### MsgMint
 MsgMint is the sdk.Msg type for allowing an admin account to mint
-more of a token.  For now, we require sender == mintToAddress
-but this restriction will be removed in the future.
+more of a token.  For now, we only support minting to the sender account
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `sender` | [string](#string) |  |  |
 | `amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
-| `mintToAddress` | [string](#string) |  |  |
 
 
 

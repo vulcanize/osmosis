@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/tendermint/abci/types"
@@ -19,11 +18,10 @@ import (
 	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/client/cli"
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/client/rest"
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/keeper"
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/simulation"
-	"github.com/osmosis-labs/osmosis/v7/x/incentives/types"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/client/cli"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/keeper"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/simulation"
+	"github.com/osmosis-labs/osmosis/v9/x/incentives/types"
 )
 
 var (
@@ -49,10 +47,6 @@ func (AppModuleBasic) Name() string {
 	return types.ModuleName
 }
 
-func (AppModuleBasic) RegisterCodec(cdc *codec.LegacyAmino) {
-	types.RegisterCodec(cdc)
-}
-
 func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	types.RegisterCodec(cdc)
 }
@@ -76,11 +70,6 @@ func (AppModuleBasic) ValidateGenesis(cdc codec.JSONCodec, config client.TxEncod
 	return genState.Validate()
 }
 
-// RegisterRESTRoutes registers the capability module's REST service handlers.
-func (AppModuleBasic) RegisterRESTRoutes(clientCtx client.Context, rtr *mux.Router) {
-	rest.RegisterRoutes(clientCtx, rtr)
-}
-
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
 	if err := types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx)); err != nil {
@@ -95,7 +84,7 @@ func (a AppModuleBasic) GetTxCmd() *cobra.Command {
 
 // GetQueryCmd returns the capability module's root query command.
 func (AppModuleBasic) GetQueryCmd() *cobra.Command {
-	return cli.GetQueryCmd(types.StoreKey)
+	return cli.GetQueryCmd()
 }
 
 // ----------------------------------------------------------------------------

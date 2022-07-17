@@ -6,14 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/osmosis-labs/osmosis/v7/app"
-	lockuptypes "github.com/osmosis-labs/osmosis/v7/x/lockup/types"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	"github.com/cosmos/cosmos-sdk/simapp"
+	"github.com/osmosis-labs/osmosis/v9/app"
+	lockuptypes "github.com/osmosis-labs/osmosis/v9/x/lockup/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/bank/testutil"
 )
 
 func Min(x, y int) int {
@@ -35,7 +36,7 @@ func benchmarkResetLogic(numLockups int, b *testing.B) {
 	b.StopTimer()
 
 	blockStartTime := time.Now().UTC()
-	app := app.Setup(false)
+	app := app.Setup(b)
 	ctx := app.BaseApp.NewContext(false, tmproto.Header{Height: 1, ChainID: "osmosis-1", Time: blockStartTime})
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -52,7 +53,7 @@ func benchmarkResetLogic(numLockups int, b *testing.B) {
 		for j := 0; j < numDenoms; j++ {
 			coins = coins.Add(sdk.NewInt64Coin(fmt.Sprintf("token%d", j), r.Int63n(100000000)))
 		}
-		_ = simapp.FundAccount(app.BankKeeper, ctx, addr, coins)
+		_ = testutil.FundAccount(app.BankKeeper, ctx, addr, coins)
 		app.AccountKeeper.SetAccount(ctx, authtypes.NewBaseAccount(addr, nil, 0, 0))
 		addrs = append(addrs, addr)
 	}

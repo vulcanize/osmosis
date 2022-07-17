@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	gammtypes "github.com/osmosis-labs/osmosis/v7/x/gamm/types"
+	gammtypes "github.com/osmosis-labs/osmosis/v9/x/gamm/types"
 
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
 )
 
 const (
@@ -16,9 +16,7 @@ const (
 
 func init() {
 	govtypes.RegisterProposalType(ProposalTypeSetSuperfluidAssets)
-	govtypes.RegisterProposalTypeCodec(&SetSuperfluidAssetsProposal{}, "osmosis/SetSuperfluidAssetsProposal")
 	govtypes.RegisterProposalType(ProposalTypeRemoveSuperfluidAssets)
-	govtypes.RegisterProposalTypeCodec(&RemoveSuperfluidAssetsProposal{}, "osmosis/RemoveSuperfluidAssetsProposal")
 }
 
 var (

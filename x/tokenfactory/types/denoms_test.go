@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	appparams "github.com/osmosis-labs/osmosis/v7/app/params"
-	"github.com/osmosis-labs/osmosis/v7/x/tokenfactory/types"
+	appparams "github.com/osmosis-labs/osmosis/v9/app/params"
+	"github.com/osmosis-labs/osmosis/v9/x/tokenfactory/types"
 )
 
 func TestDecomposeDenoms(t *testing.T) {
@@ -27,12 +27,12 @@ func TestDecomposeDenoms(t *testing.T) {
 			valid: true,
 		},
 		{
-			desc:  "multiple slashes in nonce",
+			desc:  "multiple slashes in subdenom",
 			denom: "factory/osmo1t7egva48prqmzl59x5ngv4zx0dtrwewc9m7z44/bitcoin/1",
 			valid: true,
 		},
 		{
-			desc:  "no nonce",
+			desc:  "no subdenom",
 			denom: "factory/osmo1t7egva48prqmzl59x5ngv4zx0dtrwewc9m7z44/",
 			valid: true,
 		},
@@ -42,7 +42,7 @@ func TestDecomposeDenoms(t *testing.T) {
 			valid: false,
 		},
 		{
-			desc:  "nonce of only slashes",
+			desc:  "subdenom of only slashes",
 			denom: "factory/osmo1t7egva48prqmzl59x5ngv4zx0dtrwewc9m7z44/////",
 			valid: true,
 		},
